@@ -1,0 +1,16 @@
+Common Utils Change Log
+
+0.0.3:
+
+- Enchances com.blackberry.common.props with ZK support
+
+
+0.0.2:
+
+- Adds com.blackberry.common.conversion and com.blackberry.common.props
+
+
+0.0.1:
+
+- Adds com.blackberry.common.threads
+
