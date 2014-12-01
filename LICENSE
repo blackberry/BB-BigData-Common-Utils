@@ -13,12 +13,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package com.blackberry.common.threads;
-
-import com.blackberry.common.threads.NotifyingThread;
-
-public interface ThreadCompleteListener 
-{
-	void notifyOfThreadComplete(final NotifyingThread notifyingThread, Exception e);
-}

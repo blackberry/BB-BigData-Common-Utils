@@ -1,44 +1,63 @@
+/**
+ * Copyright 2014 BlackBerry, Limited.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+ */
 package com.blackberry.common.threads;
 
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public abstract class NotifyingThread implements Runnable {
+public abstract class NotifyingThread implements Runnable
+{
 	private final Set<ThreadCompleteListener> listeners = new CopyOnWriteArraySet<ThreadCompleteListener>();
 
-	public final void addListener(final ThreadCompleteListener listener) {
+	public final void addListener(final ThreadCompleteListener listener)
+	{
 		listeners.add(listener);
 	}
 
-	public final void removeListener(final ThreadCompleteListener listener) {
+	public final void removeListener(final ThreadCompleteListener listener)
+	{
 		listeners.remove(listener);
 	}
 
-	private final void notifyListeners() {
-		for (ThreadCompleteListener listener : listeners) {
+	private final void notifyListeners()
+	{
+		for (ThreadCompleteListener listener : listeners)
+		{
 			listener.notifyOfThreadComplete(this, null);
 		}
 	}
 
-	private final void notifyListeners(Exception e) {
-		for (ThreadCompleteListener listener : listeners) {
+	private final void notifyListeners(Exception e)
+	{
+		for (ThreadCompleteListener listener : listeners)
+		{
 			listener.notifyOfThreadComplete(this, e);
 		}
 	}
 
 	@Override
-	public final void run() {
-		try {
+	public final void run()
+	{
+		try
+		{
 			doRun();
 		} 
-		catch (Exception e) {
+		catch (Exception e)
+		{
 			notifyListeners(e);
-		}
-		finally {
+		} 
+		finally
+		{
 			notifyListeners();
 		}
 	}
-	
 
 	public abstract void doRun() throws Exception;
 }

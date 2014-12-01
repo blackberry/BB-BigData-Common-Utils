@@ -1,3 +1,19 @@
+/**
+ * Copyright 2014 BlackBerry, Limited.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.blackberry.common.conversion;
 
 import java.net.InetAddress;
@@ -8,7 +24,8 @@ import java.util.TimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Converter {
+public class Converter 
+{
 	
 	private static final Logger LOG = LoggerFactory.getLogger(Converter.class);
 	
@@ -40,7 +57,8 @@ public class Converter {
 	 * Creates a byte array from a long  
 	 */
 
-	public static byte[] getBytes(long l) {
+	public static byte[] getBytes(long l) 
+	{
 		return new byte[] //
 		{ (byte) (l >> 56), //
 				(byte) (l >> 48), //
@@ -69,7 +87,8 @@ public class Converter {
 	 * %l: The system's host name
 	 *		 
 	 */
-	public static String timestampTemplateBuilder(long timestamp, String template) {
+	public static String timestampTemplateBuilder(long timestamp, String template) 
+	{
 		Calendar cal = Calendar.getInstance();
 		cal.setTimeZone(TimeZone.getTimeZone("UTC"));
 		cal.setTimeInMillis(timestamp);
@@ -78,9 +97,12 @@ public class Converter {
 		
 		String hostname;
 		
-		try {
+		try 
+		{
 			hostname = InetAddress.getLocalHost().getCanonicalHostName();
-		} catch (UnknownHostException e) {
+		} 
+		catch (UnknownHostException e) 
+		{
 			LOG.error("Can't determine local hostname");
 			hostname = "unknown.host";
 		}
@@ -89,16 +111,23 @@ public class Converter {
 		int i = 0;
 		int p = 0;
 		char c;
-		while (true) {
+		
+		while (true) 
+		{
 			p = template.indexOf('%', i);
-			if (p == -1) {
+			
+			if (p == -1) 
+			{
 				sb.append(template.substring(i));
 				break;
 			}
+			
 			sb.append(template.substring(i, p));
 
-			if (p + 1 < templateLength) {
+			if (p + 1 < templateLength) 
+			{
 				c = template.charAt(p + 1);
+				
 				switch (c) {
 				case 'y':
 					sb.append(String.format("%04d", cal.get(Calendar.YEAR)));
@@ -124,7 +153,9 @@ public class Converter {
 				default:
 					sb.append('%').append(c);
 				}
-			} else {
+			} 
+			else 
+			{
 				sb.append('%');
 				break;
 			}
@@ -138,6 +169,5 @@ public class Converter {
 
 		return sb.toString();
 	}
-	
-	
+
 }
