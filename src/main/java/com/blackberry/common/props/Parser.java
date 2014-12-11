@@ -16,13 +16,16 @@
 
 package com.blackberry.common.props;
 
+import com.google.common.base.Joiner;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Parser
 {
-
 	private static final Logger LOG = LoggerFactory.getLogger(Parser.class);
 	private final Properties props;
 	
@@ -41,7 +44,7 @@ public class Parser
 		}
 		else
 		{
-			throw new Exception("missing property: " + propertyName);
+			throw new MissingPropertyException("missing property: " + propertyName, null);
 		}
 		
 		return returnValue;
@@ -69,7 +72,7 @@ public class Parser
 		}
 		else
 		{
-			throw new Exception("missing property: " + propertyName);
+			throw new MissingPropertyException("missing property: " + propertyName, null);
 		}
 		
 		return returnValue;
@@ -100,12 +103,12 @@ public class Parser
 			}
 			else
 			{
-				throw new Exception("property " + property + "must be either 'true' or 'false', not " + property, null);
+				throw new UnsupportedValueException("property " + property + "must be either 'true' or 'false', not " + property, null);
 			}
 		}
 		else
 		{
-			throw new Exception("missing property: " + propertyName);
+			throw new MissingPropertyException("missing property: " + propertyName, null);
 		}
 		
 		return returnValue;
@@ -124,7 +127,7 @@ public class Parser
 			}
 			else
 			{
-				throw new Exception("property " + property + "must be either 'true' or 'false', not " + property, null);
+				throw new UnsupportedValueException("property " + property + "must be either 'true' or 'false', not " + property, null);
 			}
 		}
 		
@@ -141,7 +144,7 @@ public class Parser
 		}
 		else
 		{
-			throw new Exception("missing property: " + propertyName);
+			throw new MissingPropertyException("missing property: " + propertyName, null);
 		}
 		
 		return returnValue;
@@ -158,4 +161,129 @@ public class Parser
 		
 		return returnValue;
 	}	
+	
+	/**
+	 * Calls the object's setter method for the provided attribute type/value
+	 * @param object
+	 * @param attribute
+	 * @param value
+	 * @throws NoSuchMethodException
+	 * @throws IllegalAccessException
+	 * @throws InvocationTargetException 
+	 */
+	public void set(Object object, 
+		 String attribute, 
+		 Object value) throws 
+			NoSuchMethodException, 
+			IllegalAccessException, 
+			InvocationTargetException
+	{
+		String setter = String.format("set%C%s", attribute.charAt(0), attribute.substring(1));
+		Method method = object.getClass().getMethod(setter, value.getClass());
+		method.invoke(value, this, value);
+	}
+	
+	/**
+	 * 
+	 * @param parserMethodName
+	 * @param forClass
+	 * @param hasDefault
+	 * @return
+	 * @throws NoSuchMethodException 
+	 */
+	
+	public Method getParser(String parserMethodName, Class forClass, Object hasDefault) throws NoSuchMethodException
+	{
+		if (hasDefault != null)
+		{
+			return this.getClass().getMethod(parserMethodName, new Class[] {String.class, forClass});	
+		}
+		else
+		{
+			return getParser(parserMethodName, forClass);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param parserMethodName
+	 * @param forClass
+	 * @return
+	 * @throws NoSuchMethodException 
+	 */
+	
+	public Method getParser(String parserMethodName, Class forClass) throws NoSuchMethodException
+	{
+		return this.getClass().getMethod(parserMethodName, new Class[] {String.class});
+	}
+	
+	/**
+	 * 
+	 * @param object
+	 * @param propertyName
+	 * @param propertyClass
+	 * @param supportedClass
+	 * @param required
+	 * @param defaultValue
+	 * @param requiredValues
+	 * @throws Exception 
+	 */
+	
+	public void parseAndPopulate (
+		 Object object, 
+		 String propertyName, 
+		 Class propertyClass, 
+		 Class supportedClass,
+		 Boolean required,
+		 Object defaultValue,
+		 ArrayList<Object> requiredValues) throws Exception
+	{	
+		String supportedClassName = supportedClass.getClass().getName();
+		String propertyClassName = supportedClass.getClass().getName();
+		
+		if (object.getClass() != supportedClass)
+		{	
+			throw new Exception(String.format(
+				 "Cannot apply property {} to class type {} when only {}class type(s) supported", 
+				 propertyName, object.getClass().getName(), supportedClassName));
+		}
+		
+		String parserMethodName = String.format("parse%C%s", propertyClassName.charAt(0), propertyClassName.substring(1));
+		Method parserMethod = getParser(parserMethodName, propertyClass);
+			
+		if (parserMethod == null)
+		{
+			throw new Exception(String.format("Cannot find parser method {}", parserMethodName));				
+		}
+		
+		Object propertyValue = null;
+		
+		try
+		{			
+			propertyValue = parserMethod.invoke(propertyName);
+		}
+		catch (Exception e)
+		{
+			if (e.getClass().getName().equals("MissingPropertyException"))
+			{
+				if (required && defaultValue == null)
+				{
+					throw e;
+				}
+				else if (required && defaultValue != null)
+				{
+					propertyValue = defaultValue;
+				}
+			}
+		}
+		
+		if (requiredValues != null && !requiredValues.contains(propertyValue))
+		{
+			throw new UnsupportedValueException(String.format(
+				 "{} unsupported value: {} must be one of {}", 
+				propertyName, propertyValue, Joiner.on(", ").join(requiredValues)), null);
+		}
+		
+	}
+		
 }
