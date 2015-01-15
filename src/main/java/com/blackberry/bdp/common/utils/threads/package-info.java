@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-package com.blackberry.common.threads;
+package com.blackberry.bdp.common.utils.threads;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.blackberry.common.props;
+package com.blackberry.bdp.common.utils.props;
 
 import com.google.common.base.Joiner;
 import java.lang.reflect.InvocationTargetException;

@@ -14,4 +14,17 @@
  * limitations under the License.
  */
 
-package com.blackberry.common.conversion;
+package com.blackberry.bdp.common.utils.props;
+
+/**
+ *
+ * @author dariens
+ */
+public class MissingPropertyException extends Exception
+{
+	public MissingPropertyException(String error, Exception e)
+	{
+		super(error, e);
+	}
+	
+}
