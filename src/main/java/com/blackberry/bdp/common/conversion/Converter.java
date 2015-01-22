@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.blackberry.bdp.common.utils.conversion;
+package com.blackberry.bdp.common.conversion;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;

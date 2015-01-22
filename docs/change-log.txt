@@ -1,5 +1,21 @@
 Common Utils Change Log
 
+0.0,6:
+
+- Adds InstrumentedLoggerSingleton
+- Removed moot utils portion of package namespace by renaming com.blackberry.bdp.common.utils.* to to com.blackberry.bdp.common.*
+
+0.0.5
+
+- Adds a little zookeeper utility to get/set paths to various types (string, long, etc)
+- Adds new package: com.blackberry.bdp.common.utils.jmx, containing new class: MetricRegistrySingleton
+- Removes logging dependencies
+
+
+0.0,4
+
+- The changes were not documented in this release
+
 0.0.3:
 
 - Enchances com.blackberry.common.props with ZK support

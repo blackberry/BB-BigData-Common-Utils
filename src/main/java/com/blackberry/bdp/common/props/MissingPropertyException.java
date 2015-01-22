@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.blackberry.bdp.common.utils.props;
+package com.blackberry.bdp.common.props;
 
 /**
  *
  * @author dariens
  */
-public class UnsupportedValueException extends Exception
+public class MissingPropertyException extends Exception
 {
-	public UnsupportedValueException(String error, Exception e)
+	public MissingPropertyException(String error, Exception e)
 	{
 		super(error, e);
 	}

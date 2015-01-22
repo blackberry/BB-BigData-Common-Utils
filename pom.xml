@@ -7,31 +7,83 @@
 	</scm>
 		
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.blackberry.bdp.common.utils</groupId>
-	<artifactId>common-utils</artifactId>
-	<version>0.0.4</version>
+	
+	<groupId>com.blackberry.bdp.common</groupId>
+	<artifactId>bdp-common</artifactId>
+	<version>0.0.9</version>	
 	<name>common-utils</name>
+	
 	<dependencies>
+		
+		<!-- Guava -->
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>18.0</version>
 		</dependency>
+		
+		<!-- Curator Framework -->
+		<dependency>
+			<groupId>org.apache.curator</groupId>
+			<artifactId>curator-recipes</artifactId>
+			<version>2.7.1</version>
+		</dependency>
+		
+		<!-- Metrics -->
+		<dependency>
+			<groupId>io.dropwizard.metrics</groupId>
+			<artifactId>metrics-log4j2</artifactId>
+			<version>3.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>io.dropwizard.metrics</groupId>
+			<artifactId>metrics-core</artifactId>
+			<version>3.1.1</version>
+		</dependency>
+		
+		<!-- slf4j -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.7</version>
+			<version>1.7.10</version>
+		</dependency>
+		
+		<!-- Binding for Log4J2 -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j-impl</artifactId>
+			<version>2.2</version>
+		</dependency>
+		
+		<!-- Log4j2 API and Core implementation required for binding -->		
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>		
+			<version>2.2</version>
 		</dependency>
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.7.7</version>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.2</version>
 		</dependency>
+		
+		<!-- 
+			If existing components use Log4j 1.x and you want to have this 
+			logging routed to Log4j 2, then remove any log4j 1.x 
+			dependencies and add the following. 
+		-->		
 		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-1.2-api</artifactId>
+			<version>2.2</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.5.1</version>
+		</dependency>
+		
 	</dependencies> 
 	
 	<build>
@@ -67,7 +119,7 @@
 					</execution>
 				</executions>
 				<configuration>
-					<doCheck>true</doCheck>
+					<doCheck>false</doCheck>
 					<doUpdate>false</doUpdate>		
 				</configuration>					
 			</plugin>
@@ -92,5 +144,8 @@
 			
 		</plugins>
 	</build>
-		
+	<properties>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<maven.compiler.target>1.7</maven.compiler.target>
+	</properties>
 </project>
