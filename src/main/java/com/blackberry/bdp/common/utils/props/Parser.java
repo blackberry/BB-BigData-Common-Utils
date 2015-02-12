@@ -90,6 +90,34 @@ public class Parser
 		return returnValue;
 	}	
 
+	public Short parseShort(String propertyName) throws Exception
+	{
+		Short returnValue;
+		
+		if (props.containsKey(propertyName))
+		{
+			returnValue = Short.parseShort(props.getProperty(propertyName));
+		}
+		else
+		{
+			throw new MissingPropertyException("missing property: " + propertyName, null);
+		}
+		
+		return returnValue;
+	}
+	
+	public Short parseShort(String propertyName, Short defaultValue) throws Exception
+	{
+		Short returnValue = defaultValue;
+		
+		if (props.containsKey(propertyName))
+		{
+			returnValue = Short.parseShort(props.getProperty(propertyName));
+		}
+		
+		return returnValue;
+	}	
+
 	public Boolean parseBoolean(String propertyName) throws Exception
 	{
 		Boolean returnValue;
