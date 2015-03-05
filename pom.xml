@@ -37,7 +37,7 @@
 	<build>
 		<plugins>
 
-			<!-- Sign artifacts via GPG -->
+			<!-- Sign artifacts via GPG 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-gpg-plugin</artifactId>
@@ -51,7 +51,7 @@
 						</goals>
 					</execution>
 				</executions>
-			</plugin>			
+			</plugin>			-->
 						
 			<!-- Generate a build number based off the commit hash -->
 			<plugin>
