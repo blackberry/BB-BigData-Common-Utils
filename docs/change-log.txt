@@ -1,5 +1,13 @@
 Common Utils Change Log
 
+0.0,5
+
+- Adds a little zookeeper utility to get/set paths to various types (string, long, etc)
+
+0.0,4
+
+- The changes were not documented in this release
+
 0.0.3:
 
 - Enchances com.blackberry.common.props with ZK support
