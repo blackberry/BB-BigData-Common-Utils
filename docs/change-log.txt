@@ -1,8 +1,10 @@
 Common Utils Change Log
 
-0.0,5
+0.0.5
 
 - Adds a little zookeeper utility to get/set paths to various types (string, long, etc)
+- Adds new package: com.blackberry.bdp.common.utils.jmx, containing new class: MetricRegistrySingleton
+- Removes logging dependencies
 
 0.0,4
 
