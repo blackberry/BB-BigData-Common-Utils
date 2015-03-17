@@ -14,17 +14,4 @@
  * limitations under the License.
  */
 
-package com.blackberry.bdp.common.utils.props;
-
-/**
- *
- * @author dariens
- */
-public class UnsupportedValueException extends Exception
-{
-	public UnsupportedValueException(String error, Exception e)
-	{
-		super(error, e);
-	}
-	
-}
+package com.blackberry.bdp.common.threads;

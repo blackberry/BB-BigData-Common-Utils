@@ -10,7 +10,7 @@
 	
 	<groupId>com.blackberry.bdp.common.utils</groupId>
 	<artifactId>common-utils-dev</artifactId>
-	<version>0.0.5</version>	
+	<version>0.0.6</version>	
 	<name>common-utils-dev</name>
 	
 	<dependencies>
@@ -39,6 +39,32 @@
 			<groupId>io.dropwizard.metrics</groupId>
 			<artifactId>metrics-core</artifactId>
 			<version>3.1.1</version>
+		</dependency>
+		
+		<!-- slf4j -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.10</version>
+		</dependency>
+		
+		<!-- Binding for Log4J -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j-impl</artifactId>
+			<version>2.2</version>
+		</dependency>
+		
+		<!-- Log4j API and Core implementation required for binding -->		
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>		
+			<version>2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.2</version>
 		</dependency>		
 		
 	</dependencies> 

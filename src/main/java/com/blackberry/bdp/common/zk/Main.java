@@ -1,11 +1,11 @@
-package com.blackberry.bdp.common.utils.zk;
+package com.blackberry.bdp.common.zk;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
-import com.blackberry.bdp.common.utils.conversion.Converter;
+import com.blackberry.bdp.common.conversion.Converter;
 
 public class Main
 {	

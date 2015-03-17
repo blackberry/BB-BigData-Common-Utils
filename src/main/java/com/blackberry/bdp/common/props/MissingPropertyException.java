@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.blackberry.bdp.common.utils.props;
+package com.blackberry.bdp.common.props;
 
 /**
  *

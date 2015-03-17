@@ -14,11 +14,4 @@
  * limitations under the License.
  */
 
-package com.blackberry.bdp.common.utils.threads;
-
-import com.blackberry.bdp.common.utils.threads.NotifyingThread;
-
-public interface ThreadCompleteListener 
-{
-	void notifyOfThreadComplete(final NotifyingThread notifyingThread, Exception e);
-}
+package com.blackberry.bdp.common.conversion;

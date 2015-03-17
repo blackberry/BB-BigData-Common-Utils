@@ -1,4 +1,4 @@
-package com.blackberry.bdp.common.utils.zk;
+package com.blackberry.bdp.common.zk;
 
 public class UnsupportedTypeException extends Throwable {
 	
