@@ -8,8 +8,8 @@
 		
 	<modelVersion>4.0.0</modelVersion>
 	
-	<groupId>com.blackberry.bdp.common.utils</groupId>
-	<artifactId>common-utils-dev</artifactId>
+	<groupId>com.blackberry.bdp.common</groupId>
+	<artifactId>bdp-common</artifactId>
 	<version>0.0.6</version>	
 	<name>common-utils-dev</name>
 	
