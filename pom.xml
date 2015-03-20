@@ -10,7 +10,7 @@
 	
 	<groupId>com.blackberry.bdp.common</groupId>
 	<artifactId>bdp-common-dev</artifactId>
-	<version>0.0.6</version>	
+	<version>0.0.7</version>	
 	<name>common-utils-dev</name>
 	
 	<dependencies>
@@ -48,14 +48,14 @@
 			<version>1.7.10</version>
 		</dependency>
 		
-		<!-- Binding for Log4J -->
+		<!-- Binding for Log4J2 -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
 			<version>2.2</version>
 		</dependency>
 		
-		<!-- Log4j API and Core implementation required for binding -->		
+		<!-- Log4j2 API and Core implementation required for binding -->		
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>		
@@ -65,7 +65,19 @@
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
 			<version>2.2</version>
-		</dependency>		
+		</dependency>
+		
+		<!-- 
+			If existing components use Log4j 1.x and you want to have this 
+			logging routed to Log4j 2, then remove any log4j 1.x 
+			dependencies and add the following. 
+		-->		
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-1.2-api</artifactId>
+			<version>2.2</version>
+		</dependency>
+		
 		
 	</dependencies> 
 	
@@ -86,7 +98,7 @@
 					</execution>
 				</executions>
 				<configuration>
-					<doCheck>true</doCheck>
+					<doCheck>false</doCheck>
 					<doUpdate>false</doUpdate>		
 				</configuration>					
 			</plugin>

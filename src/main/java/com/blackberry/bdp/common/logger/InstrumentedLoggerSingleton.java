@@ -14,35 +14,25 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 
+import com.blackberry.bdp.common.jmx.MetricRegistrySingleton;
+import org.apache.logging.log4j.core.config.ConfigurationListener;
+import org.apache.logging.log4j.core.config.Reconfigurable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.blackberry.bdp.common.jmx.MetricRegistrySingleton;
 
 /**
  *
  * @author dariens
  */
-public class InstrumentedLoggerSingleton
+public class InstrumentedLoggerSingleton implements ConfigurationListener
 {
+	private static final Logger LOG = LoggerFactory.getLogger(InstrumentedLoggerSingleton.class);
 	private static InstrumentedLoggerSingleton instance = null;
 	
-	private InstrumentedLoggerSingleton()
-	{
-		// Private to prevent instantiation
-		
-		Filter filter = null;
-		PatternLayout layout = null;
-
-		InstrumentedAppender appender = new InstrumentedAppender(MetricRegistrySingleton.getInstance().getMetricsRegistry(), filter, layout, false);
-		appender.start();
-		
-		LoggerContext context = (LoggerContext) LogManager.getContext(false);
-		Configuration config = context.getConfiguration();
-		
-		config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).addAppender(appender, Level.ALL, filter);
-		context.updateLoggers(config);		
-	}
+	private final InstrumentedAppender appender;
+	private final Filter filter = null;
+	private final PatternLayout layout = null;
 	
 	public static synchronized InstrumentedLoggerSingleton getInstance()
 	{
@@ -53,9 +43,28 @@ public class InstrumentedLoggerSingleton
 		
 		return instance;
 	}
-	
-	public Logger getLogger(String name)
+
+	private InstrumentedLoggerSingleton()
 	{
-		return LoggerFactory.getLogger(name);
+		appender = new InstrumentedAppender(MetricRegistrySingleton.getInstance().getMetricsRegistry(), filter, layout, false);
+		appender.start();		
+		instrument();
+	}
+	
+	private void instrument()
+	{
+		LoggerContext context = (LoggerContext) LogManager.getContext(false);
+		Configuration config = context.getConfiguration();
+
+		config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).addAppender(appender, Level.ALL, filter);
+		config.addListener(this);
+		context.updateLoggers(config);		
+		
+		LOG.info("Logging configuration has been modified and a new InstrumentedAppender has been configured on the root logger");		
+	}
+	
+	public void onChange(Reconfigurable reconfigurable)
+	{
+		instrument();
 	}
 }
