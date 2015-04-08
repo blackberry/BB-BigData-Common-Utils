@@ -35,9 +35,9 @@ public class StringMatcher
 		
 		for (keywordNum = 0; keywordNum < keywordStrings.length; keywordNum++)
 		{
-			if ( keywordStrings.length > maxKeywordLength)
+			if ( keywordStrings[keywordNum].length() > maxKeywordLength)
 			{
-				maxKeywordLength = keywordStrings.length;
+				maxKeywordLength = keywordStrings[keywordNum].length();
 			}
 			
 			int startingUniqueOffset = 0;
@@ -64,14 +64,14 @@ public class StringMatcher
 						break;
 					}
 				}
-				LOG.info("Setting keyword number {} with a next starting offset of {}", keywordNum - 1, startingUniqueOffset);
+				LOG.debug("Setting keyword number {} with a next starting offset of {}", keywordNum - 1, startingUniqueOffset);
 				keywords.get(keywordNum - 1).nextUniqueStartingOffset = startingUniqueOffset;
 			}
 			
 			keywords.add(new SortedKeyword(keywordStrings[keywordNum], bytes));
 		}
 		
-		LOG.info("Max keyword length is {}", maxKeywordLength);
+		LOG.debug("Max keyword length is {}", maxKeywordLength);
 		
 		// All the sorted keywords up to N-1 have their nextUniqueStartingOffset, set the last one's to zero
 		keywords.get(keywords.size() - 1).nextUniqueStartingOffset = 0;
@@ -86,21 +86,27 @@ public class StringMatcher
 		while(textIndex < bytes.length - maxKeywordLength)
 		{			
 			keywordNum = 0;
-			
+						
 			while (keywordNum < keywords.size())
 			{
 				currentKeyword = keywords.get(keywordNum);
 				
 				while(keywordIndex < currentKeyword.bytes.length)
 				{
-					//String textSubset = new String(Arrays.copyOfRange(bytes, textIndex, textIndex + keywordIndex + 1), "UTF-8");
-					//String keywordSubset = new String(Arrays.copyOfRange(currentKeyword.bytes, 0, keywordIndex + 1), "UTF-8");
+					String textSubset = new String(Arrays.copyOfRange(bytes, textIndex, textIndex + keywordIndex + 1), "UTF-8");
+					String keywordSubset = new String(Arrays.copyOfRange(currentKeyword.bytes, 0, keywordIndex + 1), "UTF-8");
 					
 					if (bytes[textIndex + keywordIndex] != currentKeyword.bytes[keywordIndex])
 					{
+						LOG.trace("keywordNum: {}, keywordIndex: {}, textIndex: {}, textSubset {} does not match keywordSubset: {}", 
+							 keywordNum, keywordIndex, textIndex, textSubset, keywordSubset);
 						break;						
 					}
-					else if (keywordIndex == currentKeyword.bytes.length - 1)
+					
+					LOG.trace("keywordNum: {}, keywordIndex: {}, textIndex: {}, textSubset {} matches keywordSubset: {}", 
+						 keywordNum, keywordIndex, textIndex, textSubset, keywordSubset);
+					
+					if (keywordIndex == currentKeyword.bytes.length - 1)
 					{	
 						return true;
 					}
