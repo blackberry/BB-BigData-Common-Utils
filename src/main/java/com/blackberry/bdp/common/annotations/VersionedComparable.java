@@ -16,14 +16,32 @@
 package com.blackberry.bdp.common.annotations;
 
 import java.lang.reflect.Field;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.zookeeper.data.Stat;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class VersionedComparable {
 
-	private static final Logger LOG = LoggerFactory.getLogger(VersionedComparable.class);
+	private static final Logger LOG = LoggerFactory.getLogger(VersionedComparable.class);	
+	private final static ObjectMapper mapper = new ObjectMapper();	
+	private CuratorFramework curator;
+	private String zkPath;
+	
+	@VersionedAttribute
+	protected int version = 0;
 	
 	public abstract int getVersion();
+	
+	public VersionedComparable() {
+		
+	}
+	
+	public VersionedComparable(CuratorFramework curator, String zkPath) {
+		this.curator = curator;
+		this.zkPath = zkPath;
+	}
 
 	public final void reload(VersionedComparable newVersion) 
 		 throws IllegalArgumentException, IllegalAccessException, ComparableClassMismatchException {
@@ -56,5 +74,18 @@ public abstract class VersionedComparable {
 				}
 			}
 		}
+	}
+	/**
+	 * Fetches the new configuration from ZK
+	 * @throws Exception
+	 */
+	public final void reload() throws Exception {
+		Stat newZkStat = curator.checkExists().forPath(zkPath);
+		if (newZkStat == null) {
+			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPath);
+		}		
+		VersionedComparable newObj = mapper.readValue(curator.getData().forPath(zkPath), this.getClass());		
+		newObj.version = newZkStat.getVersion();		
+		reload(newObj);
 	}
 }
