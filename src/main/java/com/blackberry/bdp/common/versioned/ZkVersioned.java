@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.blackberry.bdp.common.annotations;
+package com.blackberry.bdp.common.versioned;
 
 import java.lang.reflect.Field;
 import org.apache.curator.framework.CuratorFramework;
@@ -22,28 +22,28 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class VersionedComparable {
+public abstract class ZkVersioned {
 
-	private static final Logger LOG = LoggerFactory.getLogger(VersionedComparable.class);	
-	private final static ObjectMapper mapper = new ObjectMapper();	
+	private static final Logger LOG = LoggerFactory.getLogger(ZkVersioned.class);	
+	protected final static ObjectMapper mapper = new ObjectMapper();	
 	private CuratorFramework curator;
 	private String zkPath;
 	
 	@VersionedAttribute
 	protected int version = 0;
 	
-	public abstract int getVersion();
 	
-	public VersionedComparable() {
+	
+	public ZkVersioned() {
 		
 	}
 	
-	public VersionedComparable(CuratorFramework curator, String zkPath) {
+	public ZkVersioned(CuratorFramework curator, String zkPath) {
 		this.curator = curator;
 		this.zkPath = zkPath;
 	}
 
-	public final void reload(VersionedComparable newVersion) 
+	public final void reload(ZkVersioned newVersion) 
 		 throws IllegalArgumentException, IllegalAccessException, ComparableClassMismatchException {
 		
 		if (!this.getClass().equals(newVersion.getClass())) {
@@ -75,6 +75,7 @@ public abstract class VersionedComparable {
 			}
 		}
 	}
+	
 	/**
 	 * Fetches the new configuration from ZK
 	 * @throws Exception
@@ -84,8 +85,33 @@ public abstract class VersionedComparable {
 		if (newZkStat == null) {
 			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPath);
 		}		
-		VersionedComparable newObj = mapper.readValue(curator.getData().forPath(zkPath), this.getClass());		
-		newObj.version = newZkStat.getVersion();		
+		ZkVersioned newObj = mapper.readValue(curator.getData().forPath(zkPath), this.getClass());		
+		newObj.setVersion(newZkStat.getVersion());		
 		reload(newObj);
+	}
+	
+	protected static ZkVersioned get(CuratorFramework curator, String zkPath) throws Exception {
+		Stat stat = curator.checkExists().forPath(zkPath);		
+		if (stat == null) {
+			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPath);
+		}
+		ZkVersioned newObj = mapper.readValue(curator.getData().forPath(zkPath), ZkVersioned.class);
+		newObj.setVersion(stat.getVersion());
+		return newObj;		
+				
+	}
+
+	/**
+	 * @return the version
+	 */
+	public int getVersion() {
+		return version;
+	}
+
+	/**
+	 * @param version the version to set
+	 */
+	public void setVersion(int version) {
+		this.version = version;
 	}
 }
