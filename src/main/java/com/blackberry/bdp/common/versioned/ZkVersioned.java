@@ -15,6 +15,8 @@
  */
 package com.blackberry.bdp.common.versioned;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Field;
 import org.apache.curator.framework.CuratorFramework;
@@ -58,8 +60,7 @@ public abstract class ZkVersioned {
 				VersionedAttribute anno = myField.getAnnotation(VersionedAttribute.class);
 				if (anno.enabled()) {
 					if (!myField.get(this).equals(myField.get(newVersion))) {
-						// Field mis-match, inherit the new version's value
-						myField.set(this, myField.get(newVersion));
+						// Field mis-match, inherit the new version's value						
 						LOG.info("Assigning {}.{}={} (old version: {}, old value: {}, new version {}",
 							 this.getClass().getName(),
 							 myField.getName(),
@@ -67,6 +68,7 @@ public abstract class ZkVersioned {
 							 this.getVersion(),
 							 myField.get(this),
 							 newVersion.getVersion());
+						myField.set(this, myField.get(newVersion));
 					}
 				}
 			}
@@ -86,6 +88,7 @@ public abstract class ZkVersioned {
 		ZkVersioned newObj = mapper.readValue(curator.getData().forPath(zkPath), this.getClass());
 		newObj.setVersion(newZkStat.getVersion());
 		reload(newObj);
+		this.version = newZkStat.getVersion();
 	}
 
 	public synchronized void save() throws Exception {
@@ -127,7 +130,7 @@ public abstract class ZkVersioned {
 
 	/**
 	 * @param version the version to set
-	 */
+	 */	
 	public void setVersion(int version) {
 		this.version = version;
 	}

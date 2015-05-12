@@ -9,6 +9,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<groupId>com.blackberry.bdp.common</groupId>
+
 	<artifactId>bdp-common</artifactId>
 	<version>0.0.9</version>	
 	<name>common-utils</name>
@@ -61,11 +62,6 @@
 			<artifactId>log4j-api</artifactId>		
 			<version>2.2</version>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>2.2</version>
-		</dependency>
 		
 		<!-- 
 			If existing components use Log4j 1.x and you want to have this 
@@ -75,6 +71,12 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-1.2-api</artifactId>
+			<version>2.2</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
 			<version>2.2</version>
 		</dependency>
 		
