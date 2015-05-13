@@ -1,6 +1,10 @@
 Common Utils Change Log
 
-0.0,6:
+0.0.7-0.0.9
+
+- Adds the metrics registry singleton from Krackle and a ZkVersioned implementation
+
+0.0.6:
 
 - Adds InstrumentedLoggerSingleton
 - Removed moot utils portion of package namespace by renaming com.blackberry.bdp.common.utils.* to to com.blackberry.bdp.common.*
