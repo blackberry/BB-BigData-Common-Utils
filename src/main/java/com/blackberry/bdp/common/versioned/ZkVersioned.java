@@ -75,29 +75,8 @@ public abstract class ZkVersioned {
 				}
 			}
 		}
-		
-		/*
-		try {
-			updateIdentifier();
-		} catch (NoSuchFieldException ex) {
-			LOG.error("Failed to update the id attribute with the identifier", ex);
-		}
-		*/
 	}
 	
-	/*
-	protected void updateIdentifier() throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
-		if (this.getClass().isAnnotationPresent(VersionedObject.class)) {
-			VersionedObject anno = this.getClass().getAnnotation(VersionedObject.class);
-			String identifierAttribute = anno.identifier();
-			this.setId(this.getClass().getDeclaredField(identifierAttribute).get(this).toString());
-			LOG.info("Set the id of this object to {}", this.getClass().getDeclaredField(identifierAttribute).get(this).toString());
-		} else {
-			LOG.warn("The versioned object {} doesn't contain a {} annotation", this.getClass(), VersionedObject.class);
-		}
-	}
-	*/
-
 	/**
 	 * Fetches the new configuration from ZK
 	 *
@@ -197,7 +176,6 @@ public abstract class ZkVersioned {
 				obj.setVersion(objStat.getVersion());
 				obj.setCurator(curator);
 				obj.setZkPath(objPath);
-				//obj.updateIdentifier();
 				objList.add(obj);
 			} else {
 				LOG.error("The byte array in {} was empty", objPath);
