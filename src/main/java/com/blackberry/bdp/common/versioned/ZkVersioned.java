@@ -15,11 +15,12 @@
  */
 package com.blackberry.bdp.common.versioned;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+//import com.fasterxml.jackson.annotation.JsonIgnore;
+//import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
@@ -34,7 +35,7 @@ public abstract class ZkVersioned {
 	private String zkPath;
 
 	protected int version = 0;
-
+	
 	public ZkVersioned() {
 	}
 
@@ -74,7 +75,28 @@ public abstract class ZkVersioned {
 				}
 			}
 		}
+		
+		/*
+		try {
+			updateIdentifier();
+		} catch (NoSuchFieldException ex) {
+			LOG.error("Failed to update the id attribute with the identifier", ex);
+		}
+		*/
 	}
+	
+	/*
+	protected void updateIdentifier() throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
+		if (this.getClass().isAnnotationPresent(VersionedObject.class)) {
+			VersionedObject anno = this.getClass().getAnnotation(VersionedObject.class);
+			String identifierAttribute = anno.identifier();
+			this.setId(this.getClass().getDeclaredField(identifierAttribute).get(this).toString());
+			LOG.info("Set the id of this object to {}", this.getClass().getDeclaredField(identifierAttribute).get(this).toString());
+		} else {
+			LOG.warn("The versioned object {} doesn't contain a {} annotation", this.getClass(), VersionedObject.class);
+		}
+	}
+	*/
 
 	/**
 	 * Fetches the new configuration from ZK
@@ -125,6 +147,66 @@ public abstract class ZkVersioned {
 	}
 
 	/**
+	 * Returns a VersionedObject from a specific CuratorFramework and ZK Path
+	 * @param <T>
+	 * @param type
+	 * @param curator
+	 * @param zkPath
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T extends ZkVersioned> T get(
+		 Class<T> type, 
+		 CuratorFramework curator, 
+		 String zkPath) throws Exception {
+		Stat stat = curator.checkExists().forPath(zkPath);
+		if (stat == null) {
+			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPath);
+		}
+		byte[] jsonBytes = curator.getData().forPath(zkPath);
+		T obj = mapper.readValue(jsonBytes, type);
+		obj.setVersion(stat.getVersion());
+		return obj;
+	}
+
+	/**
+	 * Returns all VersionedObjects from a specific CuratorFramework and ZK Root Path
+	 * @param <T>
+	 * @param type
+	 * @param curator
+	 * @param zkPathRoot
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T extends ZkVersioned> ArrayList<T> getAll(
+		 Class<T> type, 
+		 CuratorFramework curator, 
+		 String zkPathRoot) throws Exception {
+		Stat stat = curator.checkExists().forPath(zkPathRoot);
+		if (stat == null) {
+			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPathRoot);
+		}
+		ArrayList<T> objList = new ArrayList<>();
+		
+		for (String objectId : Util.childrenInZkPath(curator, zkPathRoot)) {
+			String objPath = String.format("%s/%s", zkPathRoot, objectId);
+			Stat objStat = curator.checkExists().forPath(objPath);
+			byte[] jsonBytes = curator.getData().forPath(objPath);				
+			if (jsonBytes.length != 0) {
+				T obj = mapper.readValue(jsonBytes, type);
+				obj.setVersion(objStat.getVersion());
+				obj.setCurator(curator);
+				obj.setZkPath(objPath);
+				//obj.updateIdentifier();
+				objList.add(obj);
+			} else {
+				LOG.error("The byte array in {} was empty", objPath);
+			}
+		}		
+		return objList;		
+	}
+		
+	/**
 	 * @return the version
 	 */
 	public int getVersion() {
@@ -151,5 +233,4 @@ public abstract class ZkVersioned {
 	public void setZkPath(String zkPath) {
 		this.zkPath = zkPath;
 	}
-
 }
