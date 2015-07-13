@@ -17,6 +17,7 @@ package com.blackberry.bdp.common.versioned;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Field;
 import org.apache.curator.framework.CuratorFramework;
@@ -91,7 +92,9 @@ public abstract class ZkVersioned {
 		this.version = newZkStat.getVersion();
 	}
 
-	public synchronized void save() throws Exception {
+	public synchronized void save() throws Exception {		
+		mapper.configure(DeserializationFeature.USE_BIG_INTEGER_FOR_INTS, true);
+		
 		//mapper.setAnnotationIntrospector(new IgnoreNonVersionedIntrospector());
 		//mapper.configure(Feature.FAIL_ON_EMPTY_BEANS, false);				
 		/*mapper.setVisibilityChecker(mapper.getSerializationConfig().getDefaultVisibilityChecker()
@@ -101,7 +104,7 @@ public abstract class ZkVersioned {
 			 .withCreatorVisibility(JsonAutoDetect.Visibility.ANY));*/
 		
 		String jsonObj = mapper.writeValueAsString(this);
-		LOG.info("Attempt at saving {} as {}", this, jsonObj);
+		LOG.info("Attempt at saving {} to {} as {}", this, this.zkPath, jsonObj);
 		
 		Stat stat = this.curator.checkExists().forPath(zkPath);
 		if (stat == null) {
