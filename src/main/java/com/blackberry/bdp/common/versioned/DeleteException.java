@@ -15,13 +15,12 @@
  */
 package com.blackberry.bdp.common.versioned;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
- 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD) 
-public @interface VersionedAttribute {
- 		public boolean enabled() default true;
- }
+/**
+ *
+ * @author dariens
+ */
+public class DeleteException extends Exception{
+	public DeleteException(String message) {
+		super(message);
+	}
+}

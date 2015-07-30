@@ -17,16 +17,26 @@ package com.blackberry.bdp.common.versioned;
 
 //import com.fasterxml.jackson.annotation.JsonIgnore;
 //import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@JsonIgnoreProperties({"version", "curator", "zkPath"})
 public abstract class ZkVersioned {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZkVersioned.class);
@@ -34,8 +44,8 @@ public abstract class ZkVersioned {
 	private CuratorFramework curator;
 	private String zkPath;
 
-	protected int version = 0;
-	
+	protected Integer version = 0;
+
 	public ZkVersioned() {
 	}
 
@@ -58,27 +68,25 @@ public abstract class ZkVersioned {
 		}
 
 		for (Field myField : this.getClass().getDeclaredFields()) {
-			if (myField.isAnnotationPresent(VersionedAttribute.class)) {
-				VersionedAttribute anno = myField.getAnnotation(VersionedAttribute.class);
-				if (anno.enabled()) {
-					if (!myField.get(this).equals(myField.get(newVersion))) {
-						// Field mis-match, inherit the new version's value						
-						LOG.info("Assigning {}.{}={} (old version: {}, old value: {}, new version {}",
-							 this.getClass().getName(),
-							 myField.getName(),
-							 myField.get(newVersion),
-							 this.getVersion(),
-							 myField.get(this),
-							 newVersion.getVersion());
-						myField.set(this, myField.get(newVersion));
-					}
+			if (myField.isAnnotationPresent(JsonProperty.class)) {
+				JsonProperty anno = myField.getAnnotation(JsonProperty.class);
+				if (!myField.get(this).equals(myField.get(newVersion))) {
+					// Field mis-match, inherit the new version's value						
+					LOG.info("Assigning {}.{}={} (old version: {}, old value: {}, new version {}",
+						 this.getClass().getName(),
+						 myField.getName(),
+						 myField.get(newVersion),
+						 this.getVersion(),
+						 myField.get(this),
+						 newVersion.getVersion());
+					myField.set(this, myField.get(newVersion));
 				}
 			}
 		}
 	}
-	
+
 	/**
-	 * Fetches the new configuration from ZK
+	 * Fetches the new object from ZK
 	 *
 	 * @throws Exception
 	 */
@@ -93,27 +101,42 @@ public abstract class ZkVersioned {
 		this.version = newZkStat.getVersion();
 	}
 
-	public synchronized void save() throws Exception {		
+	/**
+	 * Deletes an object from ZK
+	 *
+	 * @throws DeleteException
+	 * @throws Exception
+	 */
+	public synchronized void delete() throws DeleteException, Exception {
+		Stat stat = this.curator.checkExists().forPath(zkPath);
+		if (stat == null) {
+			LOG.error("Cannot delete {} object at non-existent path: {}", this, zkPath);
+			throw new DeleteException(String.format("Cannot delete object at non-existent path: %s", zkPath));
+		}
+		curator.delete().forPath(zkPath);
+	}
+
+	public synchronized static void delete(CuratorFramework curator, String zkPath) throws DeleteException, Exception {
+		Stat stat = curator.checkExists().forPath(zkPath);
+		if (stat == null) {
+			LOG.error("Cannot delete object at non-existent path: {}", zkPath);
+			throw new DeleteException(String.format("Cannot delete object at non-existent path: %s", zkPath));
+		}
+		curator.delete().forPath(zkPath);
+	}
+
+	public synchronized void save() throws JsonProcessingException, VersionMismatchException, Exception {
 		mapper.configure(DeserializationFeature.USE_BIG_INTEGER_FOR_INTS, true);
-		
-		//mapper.setAnnotationIntrospector(new IgnoreNonVersionedIntrospector());
-		//mapper.configure(Feature.FAIL_ON_EMPTY_BEANS, false);				
-		/*mapper.setVisibilityChecker(mapper.getSerializationConfig().getDefaultVisibilityChecker()
-			 .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-			 .withGetterVisibility(JsonAutoDetect.Visibility.ANY)
-			 .withSetterVisibility(JsonAutoDetect.Visibility.ANY)
-			 .withCreatorVisibility(JsonAutoDetect.Visibility.ANY));*/
-		
+		mapper.setVisibility(PropertyAccessor.ALL, Visibility.NONE);
 		String jsonObj = mapper.writeValueAsString(this);
 		LOG.info("Attempt at saving {} to {} as {}", this, this.zkPath, jsonObj);
-		
 		Stat stat = this.curator.checkExists().forPath(zkPath);
 		if (stat == null) {
 			LOG.info("Saving initial object in non-existent zkPath: {}", zkPath);
 			curator.create().creatingParentsIfNeeded()
 				 .withMode(CreateMode.PERSISTENT).forPath(zkPath, jsonObj.getBytes());
 		} else {
-			if (this.version != stat.getVersion()) {
+			if (this.version != null && this.version != stat.getVersion()) {
 				throw new VersionMismatchException(String.format(
 					 "Object with version %s cannot be saved to existing version %s",
 					 this.version, stat.getVersion()));
@@ -127,6 +150,7 @@ public abstract class ZkVersioned {
 
 	/**
 	 * Returns a VersionedObject from a specific CuratorFramework and ZK Path
+	 *
 	 * @param <T>
 	 * @param type
 	 * @param curator
@@ -135,8 +159,8 @@ public abstract class ZkVersioned {
 	 * @throws Exception
 	 */
 	public static <T extends ZkVersioned> T get(
-		 Class<T> type, 
-		 CuratorFramework curator, 
+		 Class<T> type,
+		 CuratorFramework curator,
 		 String zkPath) throws Exception {
 		Stat stat = curator.checkExists().forPath(zkPath);
 		if (stat == null) {
@@ -150,6 +174,7 @@ public abstract class ZkVersioned {
 
 	/**
 	 * Returns all VersionedObjects from a specific CuratorFramework and ZK Root Path
+	 *
 	 * @param <T>
 	 * @param type
 	 * @param curator
@@ -158,19 +183,19 @@ public abstract class ZkVersioned {
 	 * @throws Exception
 	 */
 	public static <T extends ZkVersioned> ArrayList<T> getAll(
-		 Class<T> type, 
-		 CuratorFramework curator, 
+		 Class<T> type,
+		 CuratorFramework curator,
 		 String zkPathRoot) throws Exception {
 		Stat stat = curator.checkExists().forPath(zkPathRoot);
 		if (stat == null) {
 			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPathRoot);
 		}
 		ArrayList<T> objList = new ArrayList<>();
-		
+
 		for (String objectId : Util.childrenInZkPath(curator, zkPathRoot)) {
 			String objPath = String.format("%s/%s", zkPathRoot, objectId);
 			Stat objStat = curator.checkExists().forPath(objPath);
-			byte[] jsonBytes = curator.getData().forPath(objPath);				
+			byte[] jsonBytes = curator.getData().forPath(objPath);
 			if (jsonBytes.length != 0) {
 				T obj = mapper.readValue(jsonBytes, type);
 				obj.setVersion(objStat.getVersion());
@@ -180,10 +205,10 @@ public abstract class ZkVersioned {
 			} else {
 				LOG.error("The byte array in {} was empty", objPath);
 			}
-		}		
-		return objList;		
+		}
+		return objList;
 	}
-		
+
 	/**
 	 * @return the version
 	 */
@@ -193,7 +218,7 @@ public abstract class ZkVersioned {
 
 	/**
 	 * @param version the version to set
-	 */	
+	 */
 	public void setVersion(int version) {
 		this.version = version;
 	}
@@ -211,4 +236,5 @@ public abstract class ZkVersioned {
 	public void setZkPath(String zkPath) {
 		this.zkPath = zkPath;
 	}
+
 }
