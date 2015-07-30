@@ -17,14 +17,18 @@ package com.blackberry.bdp.common.versioned;
 
 //import com.fasterxml.jackson.annotation.JsonIgnore;
 //import com.fasterxml.jackson.annotation.JsonProperty;
+import com.blackberry.bdp.common.exception.InvalidUserRoleException;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,16 +38,18 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @JsonIgnoreProperties({"version", "curator", "zkPath"})
 public abstract class ZkVersioned {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZkVersioned.class);
-	protected final static ObjectMapper mapper = new ObjectMapper();
+	protected  static ObjectMapper mapper = new ObjectMapper();
 	private CuratorFramework curator;
 	private String zkPath;
-
+	private  Map<String, Map<Class, Class>> roleToMixInMapping=new HashMap<String, Map<Class,Class>>();
 	protected Integer version = 0;
 
 	public ZkVersioned() {
@@ -147,6 +153,96 @@ public abstract class ZkVersioned {
 			}
 		}
 	}
+	
+	public  void registerMixIn(String role, Map<Class, Class> mapping){
+		this.roleToMixInMapping.put(role, mapping);
+	}
+	
+	public static JsonNode merge(JsonNode mainNode, JsonNode updateNode) {
+	    Iterator<String> fieldNames = mainNode.fieldNames();
+	    while (fieldNames.hasNext()) {
+	        String fieldName = fieldNames.next();
+	        JsonNode jsonNode = mainNode.get(fieldName);
+	       
+	        //if field exist and  json node is an array
+	        if(jsonNode != null && jsonNode.isArray()){
+	        	JsonNode tempArrayNode=updateNode.get(fieldName);
+	        	int count=0;
+	        	//iterating array node
+	        	for(JsonNode node : jsonNode){ 
+	        		merge(node,tempArrayNode.get(count));
+	        		count++;
+	        	}
+	        }
+	        else{
+	        	 // if field exists and is an embedded object
+	        	 if (jsonNode != null && jsonNode.isObject()) {
+	 	            merge(jsonNode, updateNode.get(fieldName));
+	 	        }
+	 	        else {
+	 	            if (mainNode instanceof ObjectNode) {
+	 	                // Overwrite field
+	 	                JsonNode value = updateNode.get(fieldName);
+	 	                if(value !=null){
+	 	                	 ((ObjectNode) mainNode).replace(fieldName, value);
+	 	                }
+	 	               
+	 	            }
+	 	        }
+	        }
+	       
+	    }
+	    return mainNode;
+	}
+
+	public  synchronized  void save(String role) throws Exception {
+		
+		if(!roleToMixInMapping.containsKey(role)){
+			LOG.error("Undefined user role!!");
+			throw new  InvalidUserRoleException("Undefined user role!!");
+		}		
+		Map<Class, Class> mixinMapping =roleToMixInMapping.get(role);
+		for(Class c : mixinMapping.keySet()){
+			mapper.addMixIn(c, mixinMapping.get(c));
+		}
+		String result=mapper.writeValueAsString(this);
+		JsonNode updatedJsonNode=mapper.readTree(result);
+		LOG.info("Updated json node : {}",updatedJsonNode);
+		
+		String resultJson=null;
+		ZkVersioned tempObj=get(this.getClass(),this.curator,this.zkPath);		
+		if(tempObj==null){
+			resultJson=updatedJsonNode.toString();
+		}
+		else{
+			mapper=new ObjectMapper();
+			String originalJson = mapper.writeValueAsString(tempObj);
+			JsonNode originalJsonNode=mapper.readTree(originalJson);			
+			LOG.info("Original Json Node from Zk : {}",originalJsonNode);	
+			resultJson= merge(originalJsonNode,updatedJsonNode).toString();
+		}
+	
+		LOG.info("Final result : {} ",resultJson);
+
+		Stat stat = this.curator.checkExists().forPath(zkPath);
+		if (stat == null) {
+			LOG.info("Saving initial object in non-existent zkPath: {}", zkPath);
+			curator.create().creatingParentsIfNeeded()
+			.withMode(CreateMode.PERSISTENT).forPath(zkPath, resultJson.getBytes());
+		} else {
+			if (this.version != stat.getVersion()) {
+				throw new VersionMismatchException(String.format(
+						"Object with version %s cannot be saved to existing version %s",
+						this.version, stat.getVersion()));
+			} else {
+				Stat newStat = curator.setData().forPath(zkPath,resultJson.getBytes());
+				this.setVersion(newStat.getVersion());
+				LOG.info("Saved new {} version {}", this.getClass(), newStat.getVersion());
+			}
+		}		
+		
+	}
+
 
 	/**
 	 * Returns a VersionedObject from a specific CuratorFramework and ZK Path
