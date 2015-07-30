@@ -15,13 +15,16 @@
  */
 package com.blackberry.bdp.common.versioned;
 
-import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.IOException;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -48,28 +51,64 @@ public class ZkVersionedTest {
 		curator.start();
 	}
 
+	private TestObject getTestObject() {
+		TestObject testObject = new TestObject(curator, "/testObject");
+
+		testObject.setLongObject(Long.MIN_VALUE);
+		testObject.setStringObject("String");
+
+		Pojo pojo1 = new Pojo();
+		Pojo pojo2 = new Pojo();
+
+		Pojo[] pojos = {pojo1, pojo2};
+		testObject.setPojoList(pojos);
+		return testObject;
+	}
+
 	@Test
-	public void testSaveNewObject() throws VersionMismatchException, Exception {
-		TestObject1 testObject1 = new TestObject1();
-		
-		testObject1.setLongObject1(Long.MIN_VALUE);
-		testObject1.setStringObject1("String 1");
-		testObject1.setBooleanObject1(Boolean.FALSE);
-		testObject1.setByteObject1(Byte.MIN_VALUE);
-		testObject1.setCharObject1(Character.MIN_VALUE);
-		testObject1.setDoubleObject1(Double.MIN_NORMAL);
-		testObject1.setIntegerObject1(Integer.MIN_VALUE);
-		testObject1.setShortObject1(Short.MIN_VALUE);
-		
-		TestObject2 testObject2a = new TestObject2();
-		TestObject2 testObject2b = new TestObject2();
-		
-		TestObject2[] testObject2Array = {testObject2a, testObject2b};
-		testObject1.setTestObject2List(testObject2Array);
-		
-		testObject1.setCurator(curator);
-		testObject1.setZkPath("/testObject1");
-		testObject1.save();
+	public void testSaveFetchNewObject() throws VersionMismatchException, Exception {
+		TestObject testObject = getTestObject();
+		String beforeSaveJson = testObject.toJSON();
+		LOG.info("JSON before saving: {}", beforeSaveJson);
+		testObject.save();
+		TestObject retrievedObject = TestObject.get(TestObject.class, curator, "/testObject");
+		LOG.info("JSON after saving: {}", retrievedObject.toJSON());
+		assertEquals(beforeSaveJson, retrievedObject.toJSON());
+	}
+
+	@Test(expected = InvalidUserRoleException.class)
+	public void testSavingNonExistentRole() throws Exception {
+		TestObject testObject = getTestObject();
+		testObject.save("no-role");
+	}
+
+	@Test
+	public void testApplyRole() throws IOException, JsonProcessingException, InvalidUserRoleException {
+		TestObject testObject = getTestObject();
+		testObject.setSensitive1("This text should not be serialized if protected by 1");
+		testObject.setSensitive2("This text should not be serialized if protected by 2");
+
+		testObject.registerMixIn("protectedBy1", TestObject.class, TestObjectProtected1.class);
+		testObject.registerMixIn("protectedBy2", TestObject.class, TestObjectProtected2.class);
+
+		// No role: Both sensitive fields should exist
+		assertEquals(testObject.toJsonNode().has("sensitive1"), true);
+		assertEquals(testObject.toJsonNode().has("sensitive1"), true);
+
+		// protectedBy1 role: sensitive1 should not exist, sensitive 2 should exist
+		assertEquals(testObject.toJsonNode("protectedBy1").has("sensitive1"), false);
+		assertEquals(testObject.toJsonNode("protectedBy1").has("sensitive2"), true);
+
+		// Role: protectedBy2, neither sensitive fields should exist
+		assertEquals(testObject.toJsonNode("protectedBy2").has("sensitive1"), false); 
+		assertEquals(testObject.toJsonNode("protectedBy2").has("sensitive2"), false);
+
+		assertEquals(testObject.toJsonNode().get("pojoList").get(0).has("protectedString"), true);
+
+		testObject.registerMixIn("pojoProtected", Pojo.class, PojoProtected1.class);
+
+		testObject.getPojoList()[0].setProtectedString("This text should not be serialized if protected by PojoProtected1");
+		assertEquals(testObject.toJsonNode("pojoProtected").get("pojoList").get(0).has("protectedString"), false);
 	}
 
 	@AfterClass
@@ -79,4 +118,3 @@ public class ZkVersionedTest {
 	}
 
 }
-

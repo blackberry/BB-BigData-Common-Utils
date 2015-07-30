@@ -1,4 +1,4 @@
-package com.blackberry.bdp.common.exception;
+package com.blackberry.bdp.common.versioned;
 
 public class InvalidUserRoleException  extends Exception{
 
