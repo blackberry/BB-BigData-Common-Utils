@@ -15,9 +15,12 @@
  */
 package com.blackberry.bdp.common.versioned;
 
+import com.blackberry.bdp.common.exception.InvalidUserRoleException;
+import com.blackberry.bdp.common.exception.VersionMismatchException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
+
 import java.io.IOException;
+
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
