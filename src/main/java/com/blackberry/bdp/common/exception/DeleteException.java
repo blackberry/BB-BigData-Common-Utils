@@ -13,10 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.blackberry.bdp.common.versioned;
+package com.blackberry.bdp.common.exception;
 
-public class ComparableClassMismatchException extends Exception {
-	public ComparableClassMismatchException(String message) {
+/**
+ *
+ * @author dariens
+ */
+public class DeleteException extends Exception{
+	public DeleteException(String message) {
 		super(message);
-	}	
+	}
 }
