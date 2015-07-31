@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.blackberry.bdp.common.exception.ComparableClassMismatchException;
+import com.blackberry.bdp.common.exception.DeleteException;
 import com.blackberry.bdp.common.exception.InvalidUserRoleException;
 import com.blackberry.bdp.common.exception.MissingConfigurationException;
 import com.blackberry.bdp.common.exception.VersionMismatchException;
