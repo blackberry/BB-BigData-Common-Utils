@@ -280,6 +280,8 @@ public abstract class ZkVersioned {
 		byte[] jsonBytes = curator.getData().forPath(zkPath);
 		T obj = mapper.readValue(jsonBytes, type);
 		obj.setVersion(stat.getVersion());
+		obj.setCurator(curator);
+		obj.setZkPath(zkPath);
 		return obj;
 	}
 
