@@ -16,6 +16,7 @@
 package com.blackberry.bdp.common.versioned;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -65,15 +66,27 @@ public class ZkVersionedTest {
 		return testObject;
 	}
 
+	@Test(expected = VersionMismatchException.class)
+	public void testSaveNewNonNullVersion() throws VersionMismatchException, Exception {
+		TestObject testObject = getTestObject();
+		testObject.setVersion(1);
+		testObject.save();
+	}
+
+	@Test(expected = VersionMismatchException.class)
+	public void testSaveExistingWithNullVersion() throws VersionMismatchException, Exception {
+		TestObject testObject = new TestObject(curator, "/testObjectUniquePath");
+		testObject.save();
+		testObject.setVersion(null);
+		testObject.save();
+	}
+
 	@Test
 	public void testSaveFetchNewObject() throws VersionMismatchException, Exception {
-		TestObject testObject = getTestObject();
-		String beforeSaveJson = testObject.toJSON();
-		LOG.info("JSON before saving: {}", beforeSaveJson);
+		TestObject testObject = getTestObject();		
 		testObject.save();
 		TestObject retrievedObject = TestObject.get(TestObject.class, curator, "/testObject");
-		LOG.info("JSON after saving: {}", retrievedObject.toJSON());
-		assertEquals(beforeSaveJson, retrievedObject.toJSON());
+		assertEquals(testObject.toJSON(), retrievedObject.toJSON());
 	}
 
 	@Test(expected = InvalidUserRoleException.class)

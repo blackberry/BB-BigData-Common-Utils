@@ -46,7 +46,7 @@ public abstract class ZkVersioned {
 	private CuratorFramework curator;
 	private String zkPath;
 	private final Map<String, Map<Class, Class>> roleToMixInMapping = new HashMap<>();
-	@JsonProperty protected Integer version = 0;
+	protected Integer version = null;
 
 	public ZkVersioned() {
 		mapper = getNewMapper();
@@ -57,20 +57,20 @@ public abstract class ZkVersioned {
 		this.curator = curator;
 		this.zkPath = zkPath;
 	}
-	
-	private ObjectMapper getNewMapper() {
+
+	private static ObjectMapper getNewMapper() {
 		ObjectMapper newMapper = new ObjectMapper();
 		newMapper.configure(DeserializationFeature.USE_BIG_INTEGER_FOR_INTS, true);
 		return newMapper;
 	}
 
-	public void registerMixIn(String role, Class objClass, Class  mixinClass) {
+	public void registerMixIn(String role, Class objClass, Class mixinClass) {
 		Map<Class, Class> roleToClass = roleToMixInMapping.get(role);
 		if (roleToClass == null) {
 			roleToClass = new HashMap<>();
 			roleToMixInMapping.put(role, roleToClass);
 		}
-		roleToClass.put(objClass, mixinClass);		
+		roleToClass.put(objClass, mixinClass);
 		LOG.info("here's the role to mix-in map: {}", roleToMixInMapping);
 	}
 
@@ -142,31 +142,32 @@ public abstract class ZkVersioned {
 			LOG.error("Cannot delete object at non-existent path: {}", zkPath);
 			throw new DeleteException(String.format("Cannot delete object at non-existent path: %s", zkPath));
 		}
+		LOG.info("deleting object at path {}", zkPath);
 		curator.delete().forPath(zkPath);
 	}
 
 	public String toJSON() throws JsonProcessingException {
 		return mapper.writeValueAsString(this);
 	}
-	
-	public String toJSON(String role) 
+
+	public String toJSON(String role)
 		 throws JsonProcessingException, InvalidUserRoleException {
 		if (!roleToMixInMapping.containsKey(role)) {
 			throw new InvalidUserRoleException(String.format(
 				 "The role %s does not apply to %s", role, getClass()));
-		}		
+		}
 		ObjectMapper mixinMapper = getNewMapper();
 		for (Class objClass : roleToMixInMapping.get(role).keySet()) {
-			mixinMapper.addMixIn(objClass, roleToMixInMapping.get(role).get(objClass));			
+			mixinMapper.addMixIn(objClass, roleToMixInMapping.get(role).get(objClass));
 		}
-		return mixinMapper.writeValueAsString(this);		
+		return mixinMapper.writeValueAsString(this);
 	}
-	
+
 	public JsonNode toJsonNode() throws IOException {
 		return mapper.readTree(toJSON());
 	}
 
-	public JsonNode toJsonNode(String role) 
+	public JsonNode toJsonNode(String role)
 		 throws IOException, JsonProcessingException, InvalidUserRoleException {
 		return mapper.readTree(toJSON(role));
 	}
@@ -175,15 +176,19 @@ public abstract class ZkVersioned {
 		// remove the version as that never gets written to ZK
 		ObjectNode node = (ObjectNode) mapper.readTree(jsonString);
 		node.remove("version");
-		jsonString = node.toString();				
+		jsonString = node.toString();
 		LOG.info("Attempt at saving {} to {} as {}", this, this.zkPath, jsonString);
 		Stat stat = this.curator.checkExists().forPath(zkPath);
 		if (stat == null) {
+			if (version != null) throw new VersionMismatchException("New objects must have null version");
 			LOG.info("Saving initial object in non-existent zkPath: {}", zkPath);
 			curator.create().creatingParentsIfNeeded()
 				 .withMode(CreateMode.PERSISTENT).forPath(zkPath, jsonString.getBytes());
+			stat = this.curator.checkExists().forPath(zkPath);
+			this.setVersion(stat.getVersion());
 		} else {
-			if (this.version != null && this.version != stat.getVersion()) {
+			if (version == null) throw new VersionMismatchException("Cannot update existing objects with null version");
+			if (this.version != stat.getVersion()) {
 				throw new VersionMismatchException(String.format(
 					 "Object with version %s cannot be saved to existing version %s",
 					 this.version, stat.getVersion()));
@@ -195,22 +200,22 @@ public abstract class ZkVersioned {
 		}
 	}
 
-	public synchronized void save() throws JsonProcessingException, 
+	public synchronized void save() throws JsonProcessingException,
 		 VersionMismatchException, Exception {
 		writeJsonToZooKeeper(toJSON());
 	}
 
-	public synchronized void save(String role) throws Exception {				
-		JsonNode roleBasedJsonNode = toJsonNode(role);	
+	public synchronized void save(String role) throws Exception {
+		JsonNode roleBasedJsonNode = toJsonNode(role);
 		LOG.info("Role based json node : {}", roleBasedJsonNode);
-		String jsonToWriteToZk;		
+		String jsonToWriteToZk;
 		try {
 			JsonNode existingJsonNode = get(this.getClass(), this.curator, this.zkPath).toJsonNode();
 			LOG.info("existing json node from zk : {}", existingJsonNode);
 			jsonToWriteToZk = mergeJSON(existingJsonNode, roleBasedJsonNode).toString();
 		} catch (MissingConfigurationException mce) {
 			jsonToWriteToZk = roleBasedJsonNode.toString();
-		}		
+		}
 		writeJsonToZooKeeper(jsonToWriteToZk);
 	}
 
@@ -261,6 +266,7 @@ public abstract class ZkVersioned {
 		 Class<T> type,
 		 CuratorFramework curator,
 		 String zkPath) throws Exception {
+		mapper = getNewMapper();
 		Stat stat = curator.checkExists().forPath(zkPath);
 		if (stat == null) {
 			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPath);
@@ -285,6 +291,7 @@ public abstract class ZkVersioned {
 		 Class<T> type,
 		 CuratorFramework curator,
 		 String zkPathRoot) throws Exception {
+		mapper = getNewMapper();
 		Stat stat = curator.checkExists().forPath(zkPathRoot);
 		if (stat == null) {
 			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPathRoot);
@@ -311,14 +318,14 @@ public abstract class ZkVersioned {
 	/**
 	 * @return the version
 	 */
-	public int getVersion() {
+	public Integer getVersion() {
 		return version;
 	}
 
 	/**
 	 * @param version the version to set
 	 */
-	public void setVersion(int version) {
+	public void setVersion(Integer version) {
 		this.version = version;
 	}
 
