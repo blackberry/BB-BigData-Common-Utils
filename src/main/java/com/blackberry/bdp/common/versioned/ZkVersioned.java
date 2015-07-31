@@ -348,4 +348,11 @@ public abstract class ZkVersioned {
 		this.zkPath = zkPath;
 	}
 
+	/**
+	 * @return the zkPath
+	 */
+	public String getZkPath() {
+		return zkPath;
+	}
+
 }
