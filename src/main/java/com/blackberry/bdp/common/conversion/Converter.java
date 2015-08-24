@@ -71,6 +71,27 @@ public class Converter
 		};
 	}
 	
+	public static int intFromBytes(byte[] bytes) {
+		return bytes[0] << 24 
+			 | (bytes[1] & 0xFF) << 16 
+			 | (bytes[2] & 0xFF) << 8 
+			 | (bytes[3] & 0xFF);
+	}
+	
+	/**
+	 * Creates a byte array from an int
+	 * @param i
+	 * @return
+	 */
+	public static byte[] getBytes(int i) {
+		return new byte[]
+		{(byte) (i >> 24),
+			(byte) (i >> 16),
+			(byte) (i >> 8),
+			(byte) (i /*>> 0*/) //
+		};
+	}
+	
 	/*
 	 * Takes a timestamp and a string template containing date symbols 
 	 * Creates a calendar object from the timestamp 

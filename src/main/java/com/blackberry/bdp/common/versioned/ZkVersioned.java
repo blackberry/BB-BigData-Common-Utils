@@ -29,6 +29,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.blackberry.bdp.common.versioned.HashedList;
 import com.blackberry.bdp.common.exception.ComparableClassMismatchException;
 import com.blackberry.bdp.common.exception.DeleteException;
 import com.blackberry.bdp.common.exception.InvalidUserRoleException;
@@ -43,8 +44,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
-@JsonIgnoreProperties({"curator", "zkPath"})
+@JsonIgnoreProperties({"curator", "zkPath", "mode", "retries", "backoff", "backoffExponent"})
 public abstract class ZkVersioned {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZkVersioned.class);
@@ -53,6 +55,10 @@ public abstract class ZkVersioned {
 	private String zkPath;
 	private final Map<String, Map<Class, Class>> roleToMixInMapping = new HashMap<>();
 	protected Integer version = null;
+	private CreateMode mode = CreateMode.PERSISTENT;
+	private long backoff = 1000;
+	private long retries = 8;
+	private long backoffExponent = 2;
 
 	public ZkVersioned() {
 		mapper = getNewMapper();
@@ -139,7 +145,7 @@ public abstract class ZkVersioned {
 			LOG.error("Cannot delete {} object at non-existent path: {}", this, zkPath);
 			throw new DeleteException(String.format("Cannot delete object at non-existent path: %s", zkPath));
 		}
-		curator.delete().forPath(zkPath);
+		curator.delete().deletingChildrenIfNeeded().forPath(zkPath);
 	}
 
 	public synchronized static void delete(CuratorFramework curator, String zkPath) throws DeleteException, Exception {
@@ -149,7 +155,7 @@ public abstract class ZkVersioned {
 			throw new DeleteException(String.format("Cannot delete object at non-existent path: %s", zkPath));
 		}
 		LOG.info("deleting object at path {}", zkPath);
-		curator.delete().forPath(zkPath);
+		curator.delete().deletingChildrenIfNeeded().forPath(zkPath);
 	}
 
 	public String toJSON() throws JsonProcessingException {
@@ -185,23 +191,41 @@ public abstract class ZkVersioned {
 		jsonString = node.toString();
 		LOG.info("Attempt at saving {} to {} as {}", this, this.zkPath, jsonString);
 		Stat stat = this.curator.checkExists().forPath(zkPath);
-		if (stat == null) {
-			if (version != null) throw new VersionMismatchException("New objects must have null version");
-			LOG.info("Saving initial object in non-existent zkPath: {}", zkPath);
-			curator.create().creatingParentsIfNeeded()
-				 .withMode(CreateMode.PERSISTENT).forPath(zkPath, jsonString.getBytes());
-			stat = this.curator.checkExists().forPath(zkPath);
-			this.setVersion(stat.getVersion());
-		} else {
-			if (version == null) throw new VersionMismatchException("Cannot update existing objects with null version");
-			if (this.version != stat.getVersion()) {
-				throw new VersionMismatchException(String.format(
-					 "Object with version %s cannot be saved to existing version %s",
-					 this.version, stat.getVersion()));
-			} else {
-				Stat newStat = curator.setData().forPath(zkPath, jsonString.getBytes());
-				this.setVersion(newStat.getVersion());
-				LOG.info("Saved new {} version {}", this.getClass(), newStat.getVersion());
+
+		for (int i = 0; i < retries; i++) {
+			try {
+				if (stat == null) {
+					if (version != null) {
+						throw new VersionMismatchException("New objects must have null version");
+					}
+					LOG.info("Saving initial object in non-existent zkPath: {}", zkPath);
+					curator.create().creatingParentsIfNeeded()
+						 .withMode(mode).forPath(zkPath, jsonString.getBytes());
+					stat = this.curator.checkExists().forPath(zkPath);
+					this.setVersion(stat.getVersion());
+				} else {
+					if (version == null) {
+						throw new VersionMismatchException("Cannot update existing objects with null version");
+					}
+					if (this.version != stat.getVersion()) {
+						throw new VersionMismatchException(String.format(
+							 "Object with version %s cannot be saved to existing version %s",
+							 this.version, stat.getVersion()));
+					} else {
+						Stat newStat = curator.setData().forPath(zkPath, jsonString.getBytes());
+						this.setVersion(newStat.getVersion());
+						LOG.info("Saved new {} version {}", this.getClass(), newStat.getVersion());
+					}
+				}
+				break;
+			} catch (Exception e) {
+				if (i <= retries) {
+					LOG.warn("Failed attempt {}/{} to write to {}.  Retrying in {} seconds", i, retries, zkPath, (backoff / 1000), e);
+					Thread.sleep(backoff);
+					backoff *= backoffExponent;
+				} else {
+					throw new Exception(String.format("Failed to write to %s and no retries left--giving up", zkPath), e);
+				}
 			}
 		}
 	}
@@ -324,6 +348,53 @@ public abstract class ZkVersioned {
 	}
 
 	/**
+	This is gross and what happens when you try to bend something to your will that
+	should never have been bent that way at all.  Leaving it in as a reminder of hell
+	@param <K>
+	@param <T>
+	@param type
+	@param keyMethod
+	@param keyMethodName
+	@param curator
+	@param zkPathRoot
+	@return
+	@throws Exception 
+	*/
+	public static <K, T extends ZkVersioned> HashedList<K, T> getAllHashedList(
+		 Class<T> type,
+		 Class<K> keyMethod,
+		 String keyMethodName,
+		 CuratorFramework curator,
+		 String zkPathRoot) throws Exception {
+		
+		Method method = type.getDeclaredMethod(keyMethodName, keyMethod);
+		
+		HashedList<K, T> hashedList = new HashedList<>();
+		
+		mapper = getNewMapper();
+		Stat stat = curator.checkExists().forPath(zkPathRoot);
+		if (stat == null) {
+			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPathRoot);
+		}
+		
+		for (String objectId : Util.childrenInZkPath(curator, zkPathRoot)) {
+			String objPath = String.format("%s/%s", zkPathRoot, objectId);
+			Stat objStat = curator.checkExists().forPath(objPath);
+			byte[] jsonBytes = curator.getData().forPath(objPath);
+			if (jsonBytes.length != 0) {
+				T obj = mapper.readValue(jsonBytes, type);
+				obj.setVersion(objStat.getVersion());
+				obj.setCurator(curator);
+				obj.setZkPath(objPath);
+				hashedList.add((K)method.invoke(obj), obj);				
+			} else {
+				LOG.error("The byte array in {} was empty", objPath);
+			}
+		}
+		return hashedList;
+	}
+
+	/**
 	 * @return the version
 	 */
 	public Integer getVersion() {
@@ -356,6 +427,62 @@ public abstract class ZkVersioned {
 	 */
 	public String getZkPath() {
 		return zkPath;
+	}
+
+	/**
+	 * @return the mode
+	 */
+	public CreateMode getMode() {
+		return mode;
+	}
+
+	/**
+	 * @param mode the mode to set
+	 */
+	public void setMode(CreateMode mode) {
+		this.mode = mode;
+	}
+
+	/**
+	 * @return the backoff
+	 */
+	public long getBackoff() {
+		return backoff;
+	}
+
+	/**
+	 * @param backoff the backoff to set
+	 */
+	public void setBackoff(long backoff) {
+		this.backoff = backoff;
+	}
+
+	/**
+	 * @return the retries
+	 */
+	public long getRetries() {
+		return retries;
+	}
+
+	/**
+	 * @param retries the retries to set
+	 */
+	public void setRetries(long retries) {
+		this.retries = retries;
+	}
+
+	/**
+	 * @return the backoffExponent
+	 */
+	public long getBackoffExponent() {
+		return backoffExponent;
+	}
+
+	/**
+	 * @param backoffExponent the backoffExponent to set
+	 */
+	public void setBackoffExponent(long backoffExponent) {
+		this.backoffExponent = backoffExponent;
 	}
 
 }

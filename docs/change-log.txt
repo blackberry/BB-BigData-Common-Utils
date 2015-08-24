@@ -1,5 +1,23 @@
 Common Utils Change Log
 
+0.0.12:
+
+- Curator framework bumped to 2.8.0
+- ZkVersioned methods for deleting now delete children if needed
+- Adding version to project name
+- Introduction of x.y.z version based branch naming
+- Added GC friendly getBytes(int i) and getIntFromBytes(byte[] bytes) to converter (with unit tests)
+- Added the concept of CreateMode to ZkVersioned to support all node types
+- Added the concept of retry/backoff/backoff exponent when writing to ZK in ZkVersioned
+
+0.0.11:
+
+- Adding roles to ZkVersioned through Jackson mix-ins and a function that merges JSON structures
+
+0.0.10:
+
+- Significant changes to ZkVersioned including getAll(), get()
+
 0.0.7-0.0.9
 
 - Adds the metrics registry singleton from Krackle and a ZkVersioned implementation

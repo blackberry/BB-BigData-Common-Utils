@@ -25,6 +25,8 @@ import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.data.Stat;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -45,14 +47,14 @@ public class ZkVersionedTest {
 		RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
 		LOG.info("attempting to connect to ZK with connection string {}", "localhost:21818");
 		CuratorFramework newCurator = CuratorFrameworkFactory.newClient(connectionString, retryPolicy);
+		newCurator.start();
 		return newCurator;
 	}
 
 	@BeforeClass
 	public static void setup() throws Exception {
 		zk = new LocalZkServer();
-		curator = buildCuratorFramework();
-		curator.start();
+		curator = buildCuratorFramework();		
 	}
 
 	private TestObject getTestObject() {
@@ -125,6 +127,38 @@ public class ZkVersionedTest {
 
 		testObject.getPojoList()[0].setProtectedString("This text should not be serialized if protected by PojoProtected1");
 		assertEquals(testObject.toJsonNode("pojoProtected").get("pojoList").get(0).has("protectedString"), false);
+	}
+	
+	/**
+	 * Various assumptions are made for this abstraction to work properly 
+	 * and they need to be proven correct or we're going to have a bad time
+	 */
+	@Test
+	public void testNaiveAssumptions() throws Exception {
+		// I would expect that I can update ephemeral nodes, is that true?
+		byte[] testBytes1 = "first test".getBytes();
+		byte[] testBytes2 = "another test".getBytes();		
+		curator.create().creatingParentsIfNeeded().withMode(		
+			 CreateMode.EPHEMERAL).forPath("/test1", testBytes1);		
+		curator.setData().forPath("/test1", testBytes2);
+		
+		// I would expect that versions still increment when updating ephemeral		
+		curator.create().creatingParentsIfNeeded().withMode(		
+			 CreateMode.PERSISTENT).forPath("/test2", testBytes1);		
+		assertEquals(curator.checkExists().forPath("/test2").getVersion(), 0);
+		assertEquals(curator.setData().forPath("/test2", testBytes2).getVersion(), 1);
+		
+		// I would expect that closing a curator removes an ephermal when there
+		// are still other curators created from the same factory/connection string		
+		CuratorFramework tempCurator = buildCuratorFramework();		
+		tempCurator.create().creatingParentsIfNeeded().withMode(
+			 CreateMode.EPHEMERAL).forPath("/test3", testBytes1);
+		assertEquals(curator.checkExists().forPath("/test3").getVersion(), 0);
+		tempCurator.close();
+		Thread.sleep(10 * 1000); // Give the ephemeral time to timeout
+		assertEquals(curator.checkExists().forPath("/test3"), null);
+		
+		LOG.info("Looks like our assumptions are solid");
 	}
 
 	@AfterClass
