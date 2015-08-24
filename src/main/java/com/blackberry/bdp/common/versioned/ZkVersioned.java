@@ -57,8 +57,8 @@ public abstract class ZkVersioned {
 	protected Integer version = null;
 	private CreateMode mode = CreateMode.PERSISTENT;
 	private long backoff = 1000;
-	private long retries = 8;
-	private long backoffExponent = 2;
+	private long retries = 3;
+	private long backoffExponent = 1;
 
 	public ZkVersioned() {
 		mapper = getNewMapper();
@@ -218,7 +218,10 @@ public abstract class ZkVersioned {
 					}
 				}
 				break;
-			} catch (Exception e) {
+			} catch (VersionMismatchException vme) {
+				throw vme;
+			}
+			catch (Exception e) {
 				if (i <= retries) {
 					LOG.warn("Failed attempt {}/{} to write to {}.  Retrying in {} seconds", i, retries, zkPath, (backoff / 1000), e);
 					Thread.sleep(backoff);
