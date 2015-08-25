@@ -29,11 +29,11 @@ public class ZkUtils {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZkUtils.class);
 	
-	public static void writeToPath(CuratorFramework curator, String path, int i, boolean createIfMissing) 
+	public static void writeToPath(CuratorFramework curator, String path, int i, boolean createIfMissing, CreateMode mode) 
 		 throws Exception {
 		if (curator.checkExists().forPath(path) == null) {
 			curator.create().creatingParentsIfNeeded()
-				 .withMode(CreateMode.PERSISTENT).forPath(path, Converter.getBytes(i));			
+				 .withMode(mode).forPath(path, Converter.getBytes(i));			
 		} else {
 			curator.setData().forPath(path, Converter.getBytes(i));			
 		}

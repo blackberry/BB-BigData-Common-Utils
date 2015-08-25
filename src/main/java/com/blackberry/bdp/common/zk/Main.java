@@ -6,6 +6,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 import com.blackberry.bdp.common.conversion.Converter;
+import java.util.Arrays;
 
 public class Main
 {	
@@ -101,6 +102,8 @@ public class Main
 		else 
 		{
 			byte[] bytesVal = Main.curator.getData().forPath(zNodePath);
+			
+			System.out.println("byteArray: '" + Arrays.toString(bytesVal) + "'");
 
 			if (type.equals("long"))
 			{
