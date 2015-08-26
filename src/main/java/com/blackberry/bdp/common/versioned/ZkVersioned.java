@@ -35,6 +35,7 @@ import com.blackberry.bdp.common.exception.DeleteException;
 import com.blackberry.bdp.common.exception.InvalidUserRoleException;
 import com.blackberry.bdp.common.exception.MissingConfigurationException;
 import com.blackberry.bdp.common.exception.VersionMismatchException;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -100,8 +101,7 @@ public abstract class ZkVersioned {
 		}
 
 		for (Field myField : this.getClass().getDeclaredFields()) {
-			if (myField.isAnnotationPresent(JsonProperty.class)) {
-				JsonProperty anno = myField.getAnnotation(JsonProperty.class);
+			if (!myField.isAnnotationPresent(JsonIgnore.class)) {
 				if (!myField.get(this).equals(myField.get(newVersion))) {
 					// Field mis-match, inherit the new version's value						
 					LOG.info("Assigning {}.{}={} (old version: {}, old value: {}, new version {}",
