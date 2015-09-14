@@ -67,12 +67,13 @@
 			If existing components use Log4j 1.x and you want to have this 
 			logging routed to Log4j 2, then remove any log4j 1.x 
 			dependencies and add the following. 
-		-->		
+				
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-1.2-api</artifactId>
 			<version>2.2</version>
 		</dependency>
+		-->
 		
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
