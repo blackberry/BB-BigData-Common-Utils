@@ -10,9 +10,9 @@
 	
 	<groupId>com.blackberry.bdp.common</groupId>
 
-	<artifactId>bdp-common-dev</artifactId>
-	<version>0.0.12-SNAPSHOT</version>	
-	<name>common-utils-0.0.12-SNAPSHOT</name>
+	<artifactId>bdp-common</artifactId>
+	<version>0.0.12</version>	
+	<name>common-utils-0.0.12</name>
 	
 	<dependencies>
 		
