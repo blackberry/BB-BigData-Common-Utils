@@ -1,54 +1,58 @@
-Common Utils Change Log
+# Common Utils Change Log
 
-0.0.12:
+## 0.0.13
 
-- Curator framework bumped to 2.8.0
-- ZkVersioned methods for deleting now delete children if needed
-- Adding version to project name
-- Introduction of x.y.z version based branch naming
-- Added GC friendly getBytes(int i) and getIntFromBytes(byte[] bytes) to converter (with unit tests)
-- Added the concept of CreateMode to ZkVersioned to support all node types
-- Added the concept of retry/backoff/backoff exponent when writing to ZK in ZkVersioned
+* ZkVersioned: Fixed MixIns role bug where merging JSON structures with fewer array elements caused an NPE
 
-0.0.11:
+## 0.0.12:
 
-- Adding roles to ZkVersioned through Jackson mix-ins and a function that merges JSON structures
+* Curator framework bumped to 2.8.0
+* ZkVersioned methods for deleting now delete children if needed
+* Adding version to project name
+* Introduction of x.y.z version based branch naming
+* Added GC friendly getBytes(int i) and getIntFromBytes(byte[] bytes) to converter (with unit tests)
+* Added the concept of CreateMode to ZkVersioned to support all node types
+* Added the concept of retry/backoff/backoff exponent when writing to ZK in ZkVersioned
 
-0.0.10:
+## 0.0.11:
 
-- Significant changes to ZkVersioned including getAll(), get()
+* Adding roles to ZkVersioned through Jackson mix-ins and a function that merges JSON structures
 
-0.0.7-0.0.9
+## 0.0.10:
 
-- Adds the metrics registry singleton from Krackle and a ZkVersioned implementation
+* Significant changes to ZkVersioned including getAll(), get()
 
-0.0.6:
+## 0.0.7-0.0.9
 
-- Adds InstrumentedLoggerSingleton
-- Removed moot utils portion of package namespace by renaming com.blackberry.bdp.common.utils.* to to com.blackberry.bdp.common.*
+* Adds the metrics registry singleton from Krackle and a ZkVersioned implementation
 
-0.0.5
+## 0.0.6:
 
-- Adds a little zookeeper utility to get/set paths to various types (string, long, etc)
-- Adds new package: com.blackberry.bdp.common.utils.jmx, containing new class: MetricRegistrySingleton
-- Removes logging dependencies
+* Adds InstrumentedLoggerSingleton
+* Removed moot utils portion of package namespace by renaming com.blackberry.bdp.common.utils.* to to com.blackberry.bdp.common.*
 
+## 0.0.5
 
-0.0,4
-
-- The changes were not documented in this release
-
-0.0.3:
-
-- Enchances com.blackberry.common.props with ZK support
+* Adds a little zookeeper utility to get/set paths to various types (string, long, etc)
+* Adds new package: com.blackberry.bdp.common.utils.jmx, containing new class: MetricRegistrySingleton
+* Removes logging dependencies
 
 
-0.0.2:
+## 0.0,4
 
-- Adds com.blackberry.common.conversion and com.blackberry.common.props
+* The changes were not documented in this release
+
+## 0.0.3:
+
+* Enchances com.blackberry.common.props with ZK support
 
 
-0.0.1:
+## 0.0.2:
 
-- Adds com.blackberry.common.threads
+* Adds com.blackberry.common.conversion and com.blackberry.common.props
+
+
+## 0.0.1:
+
+* Adds com.blackberry.common.threads
 

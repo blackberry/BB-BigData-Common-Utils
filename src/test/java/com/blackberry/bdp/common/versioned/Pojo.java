@@ -24,6 +24,11 @@ public class Pojo {
 
 	}	
 
+	public Pojo(String publicString, String protectedString) {
+		this.publicString = publicString;
+		this.protectedString = protectedString;
+	}	
+
 	/**
 	 * @return the publicString
 	 */

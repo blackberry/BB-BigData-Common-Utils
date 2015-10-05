@@ -29,7 +29,6 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.blackberry.bdp.common.versioned.HashedList;
 import com.blackberry.bdp.common.exception.ComparableClassMismatchException;
 import com.blackberry.bdp.common.exception.DeleteException;
 import com.blackberry.bdp.common.exception.InvalidUserRoleException;
@@ -37,7 +36,6 @@ import com.blackberry.bdp.common.exception.MissingConfigurationException;
 import com.blackberry.bdp.common.exception.VersionMismatchException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -264,7 +262,9 @@ public abstract class ZkVersioned {
 				int count = 0;
 				//iterating array node
 				for (JsonNode node : jsonNode) {
-					mergeJSON(node, tempArrayNode.get(count));
+					if (tempArrayNode.get(count) != null) {
+						mergeJSON(node, tempArrayNode.get(count));						
+					}
 					count++;
 				}
 			} else {

@@ -11,8 +11,8 @@
 	<groupId>com.blackberry.bdp.common</groupId>
 
 	<artifactId>bdp-common</artifactId>
-	<version>0.0.12</version>	
-	<name>common-utils-0.0.12</name>
+	<version>0.0.13</version>	
+	<name>common-utils-0.0.13</name>
 	
 	<dependencies>
 		

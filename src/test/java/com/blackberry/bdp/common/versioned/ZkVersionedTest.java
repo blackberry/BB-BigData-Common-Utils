@@ -20,6 +20,7 @@ import com.blackberry.bdp.common.exception.VersionMismatchException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -158,6 +159,28 @@ public class ZkVersionedTest {
 		assertEquals(curator.checkExists().forPath("/test3"), null);
 		
 		LOG.info("Looks like our assumptions are solid");
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testMergingArrays() throws Exception {
+		Pojo[] pojoList1 = {new Pojo("p1", "p1"), new Pojo("p2", "p2")};
+		Pojo[] pojoList2 = {new Pojo("p3", "p3")};
+		
+		TestObject t1 = new TestObject(curator, "/t1");
+		t1.registerMixIn("protectedBy1", TestObject.class, TestObjectProtected1.class);
+		
+		t1.setPojoList(pojoList1);
+		t1.save();
+		LOG.info("Before protecting with mixin: {}", t1.toJSON());
+		
+		
+		t1.setPojoList(pojoList1);
+		t1.save("protectedBy1");
+		LOG.info("After protecting with mixin and saving with more array objects: {}", t1.toJSON());		
+		
 	}
 
 	@AfterClass
