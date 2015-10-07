@@ -18,13 +18,14 @@ package com.blackberry.bdp.common.versioned;
 //import com.fasterxml.jackson.annotation.JsonInclude;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import org.apache.curator.framework.CuratorFramework;
 
 public class TestObject extends ZkVersioned {
 
 	private long longObject;
 	private String stringObject;
-	private Pojo[] pojoList;
+	private List<Pojo> pojoList;
 	
 	private String sensitive1;
 	private String sensitive2;
@@ -66,15 +67,15 @@ public class TestObject extends ZkVersioned {
 	/**
 	 * @return the pojoList
 	 */
-	@JsonProperty public Pojo[] getPojoList() {
+	@JsonProperty public List<Pojo> getPojoList() {
 		return pojoList;
 	}
 
 	/**
 	 * @param testObject2List the pojoList to set
 	 */
-	public void setPojoList(Pojo[] testObject2List) {
-		this.pojoList = testObject2List;
+	public void setPojoList(List<Pojo> pojoList) {
+		this.pojoList = pojoList;
 	}
 
 	/**

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-
+import java.util.List;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -66,7 +66,9 @@ public class ZkVersionedTest {
 		Pojo pojo1 = new Pojo();
 		Pojo pojo2 = new Pojo();
 
-		Pojo[] pojos = {pojo1, pojo2};
+		List<Pojo> pojos = new ArrayList<>(); 
+		pojos.add(pojo1);
+		pojos.add(pojo2);
 		testObject.setPojoList(pojos);
 		return testObject;
 	}
@@ -125,7 +127,7 @@ public class ZkVersionedTest {
 
 		testObject.registerMixIn("pojoProtected", Pojo.class, PojoProtected1.class);
 
-		testObject.getPojoList()[0].setProtectedString("This text should not be serialized if protected by PojoProtected1");
+		testObject.getPojoList().get(0).setProtectedString("This text should not be serialized if protected by PojoProtected1");
 		assertEquals(testObject.toJsonNode("pojoProtected").get("pojoList").get(0).has("protectedString"), false);
 	}
 	
@@ -166,9 +168,13 @@ public class ZkVersionedTest {
 	 */
 	@Test
 	public void testMergingArrays() throws Exception {
-		Pojo[] pojoList1 = {new Pojo("p1", "p1"), new Pojo("p2", "p2")};
-		Pojo[] pojoList2 = {new Pojo("p3", "p3")};
+		List<Pojo> pojoList1= new ArrayList<>();
+		pojoList1.add(new Pojo("p1", "p1"));
+		pojoList1.add(new Pojo("p2", "p2"));
 		
+		List<Pojo> pojoList2= new ArrayList<>();
+		pojoList1.add(new Pojo("p3", "p3"));
+
 		TestObject t1 = new TestObject(curator, "/t1");
 		t1.registerMixIn("protectedBy1", TestObject.class, TestObjectProtected1.class);
 		
@@ -177,10 +183,53 @@ public class ZkVersionedTest {
 		LOG.info("Before protecting with mixin: {}", t1.toJSON());
 		
 		
-		t1.setPojoList(pojoList1);
+		t1.setPojoList(pojoList2);
 		t1.save("protectedBy1");
-		LOG.info("After protecting with mixin and saving with more array objects: {}", t1.toJSON());		
+		LOG.info("After protecting with mixin and saving with more array objects: {}", t1.toJSON());
+	}
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testProtectingArrays() throws Exception {
+		List<Pojo> pojoList1= new ArrayList<>();
+		pojoList1.add(new Pojo("p1", "p1"));
+		pojoList1.add(new Pojo("p2", "p2"));
+
+		TestObject t1 = new TestObject(curator, "/t1");
+		t1.registerMixIn("protectedBy3", TestObject.class, TestObjectProtected3.class);		
+		t1.setPojoList(pojoList1);		
+		// Non-protected JSON node contains an array for pojoList
+		assertEquals(t1.toJsonNode().get("pojoList").isArray(), true);
+		// Protected JSON node doesn't contain an array for pojoList
+		assertEquals(t1.toJsonNode("protectedBy3").get("pojoList"), null);
+		LOG.info("JSON should not contain a pojoList: {}", t1.toJSON("protectedBy3"));
+	}
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testProtectingDeeplyNestedArrays() throws Exception {
+		List<Pojo> pojoList1= new ArrayList<>();
+		pojoList1.add(new Pojo("p1", "p1"));
+		pojoList1.add(new Pojo("p2", "p2"));
+
+		TestObject t2 = new TestObject();
+		t2.setPojoList(pojoList1);
+		List<TestObject> testObjects = new ArrayList<>();
+		testObjects.add(t2);		
 		
+		TestParentObject parent1 = new TestParentObject(curator, "/p1");		
+		parent1.setTestObjects(testObjects);
+		parent1.registerMixIn("protectedBy3", TestObject.class, TestObjectProtected3.class);
+		
+		// Non-protected JSON node contains an array for pojoList
+		//assertEquals(parent1.toJsonNode().get("pojoList").isArray(), true);
+		// Protected JSON node doesn't contain an array for pojoList
+		//assertEquals(t1.toJsonNode("protectedBy3").get("pojoList"), null);
+		LOG.info("Deeply Nested JSON should not contain a pojoList: {}", parent1.toJSON("protectedBy3"));
 	}
 
 	@AfterClass

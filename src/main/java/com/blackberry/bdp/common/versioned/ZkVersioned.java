@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.blackberry.bdp.common.exception.ComparableClassMismatchException;
 import com.blackberry.bdp.common.exception.DeleteException;
 import com.blackberry.bdp.common.exception.InvalidUserRoleException;
+import com.blackberry.bdp.common.exception.JsonMergeException;
 import com.blackberry.bdp.common.exception.MissingConfigurationException;
 import com.blackberry.bdp.common.exception.VersionMismatchException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -40,6 +41,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
@@ -218,8 +220,7 @@ public abstract class ZkVersioned {
 				break;
 			} catch (VersionMismatchException vme) {
 				throw vme;
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
 				if (i <= retries) {
 					LOG.warn("Failed attempt {}/{} to write to {}.  Retrying in {} seconds", i, retries, zkPath, (backoff / 1000), e);
 					Thread.sleep(backoff);
@@ -243,46 +244,115 @@ public abstract class ZkVersioned {
 		try {
 			JsonNode existingJsonNode = get(this.getClass(), this.curator, this.zkPath).toJsonNode();
 			LOG.info("existing json node from zk : {}", existingJsonNode);
-			jsonToWriteToZk = mergeJSON(existingJsonNode, roleBasedJsonNode).toString();
+			jsonToWriteToZk = merge(existingJsonNode, roleBasedJsonNode).toString();
+			LOG.info("saving existing object with role {} yields JSON {}", role, jsonToWriteToZk);
 		} catch (MissingConfigurationException mce) {
 			jsonToWriteToZk = roleBasedJsonNode.toString();
+			LOG.info("saving with role {} yields JSON {}", role, jsonToWriteToZk);
 		}
 		writeJsonToZooKeeper(jsonToWriteToZk);
 	}
 
-	public static JsonNode mergeJSON(JsonNode mainNode, JsonNode updateNode) {
-		Iterator<String> fieldNames = mainNode.fieldNames();
-		while (fieldNames.hasNext()) {
-			String fieldName = fieldNames.next();
-			JsonNode jsonNode = mainNode.get(fieldName);
-
-			//if field exist and  json node is an array
-			if (jsonNode != null && jsonNode.isArray()) {
-				JsonNode tempArrayNode = updateNode.get(fieldName);
-				int count = 0;
-				//iterating array node
-				for (JsonNode node : jsonNode) {
-					if (tempArrayNode.get(count) != null) {
-						mergeJSON(node, tempArrayNode.get(count));						
-					}
-					count++;
+	/**
+	 * Iterates over json1 which is intended to be a full representation of a complete JSON 
+	 * structure.  It compares nodes on json1 against nodes on json2 which should contain 
+	 * either the same identical structure of json1 or a subset of JSON structure contained 
+	 * in json1.
+	 * 
+	 * If identically named nodes on json1 and json2 vary in type (ObjectNode vs ArrayNode
+	 * for example) then an exception is thrown since json2 must not contain any additional 
+	 * structure than what is found in json1.
+	 * 
+	 * Explicit Null Node Handling Regardless of Node type:
+	 * 
+	 * This pertains to the value of a node being explicity equal to null.  See further below 
+	 * for handling of non-existent nodes
+	 * 
+	 * If a node is null on json1 and not null on json2 then the node on json1 is set to the 
+	 * value of the node on json2.
+	 * 
+	 * If a node is not null on json1 and is null on json2 then the node on json1 is made null.
+	 * 
+	 * Non-existent Node Handling:
+	 *
+	 * Since json1 is intended to be a full representation of a  complete JSON structure 
+	 * nodes on json2 that don't exist on json1 are completely ignored.  Only if the same
+	 * node exists on both json1 and json2 will the structures be merged.
+	 * 
+	 * ArrayNode Handling
+	 * 
+	 * If the node being compared is an ArrayNode then the elements on json2 are iterated
+	 * over.  If the index on json1 exists on json1 then the two elements are merged.  If the 
+	 * index doesn't exist on json1 then the element is added to the ArrayNode on json1.
+	 * Note: The existence of the element on json1 is determined by index and when an 
+	 * element is added to json1 it's index increases by one.  That shouldn't be a problem 
+	 * though as for there to ever be more elements in json2, the index pointer will always 
+	 * be one larger than the max index of json1.
+	 * 
+	 * ArrayNode Handling when json1 contains more elements than json2:
+	 * 
+	 * If 
+	 *
+	 * @param json1
+	 * @param json2
+	 * @return
+	 * @throws com.blackberry.bdp.common.exception.JsonMergeException
+	 */
+	public static JsonNode merge(JsonNode json1, JsonNode json2) throws JsonMergeException {
+		Iterator<String> json1FieldNames = json1.fieldNames();
+		while (json1FieldNames.hasNext()) {
+			String json1Field = json1FieldNames.next();
+			JsonNode json1Node = json1.get(json1Field);
+			if (json1.getNodeType().equals(json2.getNodeType()) == false) {
+				throw new JsonMergeException(String.format("json1 (%s) cannot be merged with json2 (%s)",
+					 json1.getNodeType(), json2.getNodeType()));
+			} else if (!json2.has(json1Field)) {
+				LOG.info("Not comparing {} since it doesn't exist on json2", json1Field);
+			} else if (json1Node.isNull() && json2.hasNonNull(json1Field)) {
+				((ObjectNode) json1).replace(json1Field, json2.get(json1Field));
+				LOG.info("explicitly null node {} on json1 replaced with non-null node on json2", json1Field);
+			} else if (json1.hasNonNull(json1Field) && json2.get(json1Field).isNull()) {
+				((ObjectNode) json1).replace(json1Field, json2.get(json1Field));
+				LOG.info("non-null node {} on json1 replaced with explicitly null node on json2", json1Field);
+			} else if (json1.isObject()) {
+				LOG.info("Calling merge on Object {}", json1Field);
+				merge(json1Node, json2.get(json1Field));
+			} else if (json1 instanceof ObjectNode) {
+				LOG.info("json1 is an instanceof ObjectNode");				;
+				if (json2.get(json1Field) != null) {
+					((ObjectNode) json1).replace(json1Field, json2.get(json1Field));
+					LOG.info("json1 replaced {} with json2's field", json1Field);
 				}
-			} else {
-				// if field exists and is an embedded object
-				if (jsonNode != null && jsonNode.isObject()) {
-					mergeJSON(jsonNode, updateNode.get(fieldName));
-				} else {
-					if (mainNode instanceof ObjectNode) {
-						// Overwrite field
-						JsonNode value = updateNode.get(fieldName);
-						if (value != null) {
-							((ObjectNode) mainNode).replace(fieldName, value);
-						}
+			} else if (json1.isArray()) {
+				ArrayNode json1ArrayNode = (ArrayNode) json1.get(json1Field);
+				ArrayNode json2ArrayNode = (ArrayNode) json2.get(json1Field);
+				LOG.info("ArrayNode {} json1 has {} elements and json2 has {} elements",
+					 json1Field, json1ArrayNode.size(), json2ArrayNode.size());
+				int indexNo = 0;
+				Iterator<JsonNode> json2Iter = json2ArrayNode.iterator();
+				while (json2Iter.hasNext()) {
+					JsonNode json2Element = json2Iter.next();
+					if (!json1Node.has(indexNo)) {
+						LOG.info("Need to merge ArrayNode {} element {}", json1Field, indexNo);
+						merge(json1Node.get(indexNo), json2Element);
+					} else {
+						LOG.info("ArrayNode {} element {} not found on json1, adding", json1Field, indexNo);
+						json1ArrayNode.add(json2Element);
 					}
+					indexNo++;
 				}
+				while (json1ArrayNode.size() > json2ArrayNode.size()) {
+					int indexToRemove = json1ArrayNode.size() - 1;
+					json1ArrayNode.remove(indexToRemove);
+					LOG.info("ArrayNode {} index {} on json1 removed since greater than size of json2 ({})",
+						 json1Field, indexToRemove, json2ArrayNode.size());
+				}				
+			} else {				
+				throw new JsonMergeException(String.format("Cannot merge %s unknown type of %s", 
+					 json1Field, json1Node.getNodeType()));
 			}
 		}
-		return mainNode;
+		return json1;
 	}
 
 	/**
@@ -351,35 +421,35 @@ public abstract class ZkVersioned {
 	}
 
 	/**
-	This is gross and what happens when you try to bend something to your will that
-	should never have been bent that way at all.  Leaving it in as a reminder of hell
-	@param <K>
-	@param <T>
-	@param type
-	@param keyMethod
-	@param keyMethodName
-	@param curator
-	@param zkPathRoot
-	@return
-	@throws Exception 
-	*/
+	 This is gross and what happens when you try to bend something to your will that
+	 should never have been bent that way at all.  Leaving it in as a reminder of hell
+	 @param <K>
+	 @param <T>
+	 @param type
+	 @param keyMethod
+	 @param keyMethodName
+	 @param curator
+	 @param zkPathRoot
+	 @return
+	 @throws Exception 
+	 */
 	public static <K, T extends ZkVersioned> HashedList<K, T> getAllHashedList(
 		 Class<T> type,
 		 Class<K> keyMethod,
 		 String keyMethodName,
 		 CuratorFramework curator,
 		 String zkPathRoot) throws Exception {
-		
+
 		Method method = type.getDeclaredMethod(keyMethodName, keyMethod);
-		
+
 		HashedList<K, T> hashedList = new HashedList<>();
-		
+
 		mapper = getNewMapper();
 		Stat stat = curator.checkExists().forPath(zkPathRoot);
 		if (stat == null) {
 			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPathRoot);
 		}
-		
+
 		for (String objectId : Util.childrenInZkPath(curator, zkPathRoot)) {
 			String objPath = String.format("%s/%s", zkPathRoot, objectId);
 			Stat objStat = curator.checkExists().forPath(objPath);
@@ -389,7 +459,7 @@ public abstract class ZkVersioned {
 				obj.setVersion(objStat.getVersion());
 				obj.setCurator(curator);
 				obj.setZkPath(objPath);
-				hashedList.add((K)method.invoke(obj), obj);				
+				hashedList.add((K) method.invoke(obj), obj);
 			} else {
 				LOG.error("The byte array in {} was empty", objPath);
 			}
