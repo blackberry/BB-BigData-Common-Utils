@@ -291,7 +291,8 @@ public abstract class ZkVersioned {
 	 * 
 	 * ArrayNode Handling when json1 contains more elements than json2:
 	 * 
-	 * If 
+	 * Elements are removed from json1 if they have higher indexes than the size of json2
+	 * minus 1
 	 *
 	 * @param json1
 	 * @param json2
@@ -299,57 +300,73 @@ public abstract class ZkVersioned {
 	 * @throws com.blackberry.bdp.common.exception.JsonMergeException
 	 */
 	public static JsonNode merge(JsonNode json1, JsonNode json2) throws JsonMergeException {
-		Iterator<String> json1FieldNames = json1.fieldNames();
-		while (json1FieldNames.hasNext()) {
-			String json1Field = json1FieldNames.next();
-			JsonNode json1Node = json1.get(json1Field);
-			if (json1.getNodeType().equals(json2.getNodeType()) == false) {
-				throw new JsonMergeException(String.format("json1 (%s) cannot be merged with json2 (%s)",
+		Iterator<String> json1Fields = json1.fieldNames();
+		LOG.info("Merged called on json1 ({}), json2 ({})", json1.getNodeType(), json2.getNodeType());
+		
+		while (json1Fields.hasNext()) {
+			String nodeName = json1Fields.next();
+			JsonNode json1Node = json1.get(nodeName);
+			
+			// Check if json2 has node and run explicit null checks
+			
+			if (!json2.has(nodeName)) {
+				LOG.info("Not comparing {} since it doesn't exist on json2", nodeName);
+				continue;
+			} else if (json1Node.isNull() && json2.hasNonNull(nodeName)) {
+				((ObjectNode) json1).replace(nodeName, json2.get(nodeName));
+				LOG.info("explicit null {} on json1 replaced with non-null from json2", nodeName);
+				continue;
+			} else if (json1.hasNonNull(nodeName) && json2.get(nodeName).isNull()) {
+				((ObjectNode) json1).replace(nodeName, json2.get(nodeName));
+				LOG.info("non-null {} on json1 replaced with explicitly null on json2", nodeName);
+				continue;
+			}
+			
+			// Both nodes have non-null values
+			
+			JsonNode json2Node = json2.get(nodeName);
+			
+			if (json1Node.getNodeType().equals(json2Node.getNodeType()) == false) {
+				throw new JsonMergeException(String.format(
+					 "json1 (%s) cannot be merged with json2 (%s)",
 					 json1.getNodeType(), json2.getNodeType()));
-			} else if (!json2.has(json1Field)) {
-				LOG.info("Not comparing {} since it doesn't exist on json2", json1Field);
-			} else if (json1Node.isNull() && json2.hasNonNull(json1Field)) {
-				((ObjectNode) json1).replace(json1Field, json2.get(json1Field));
-				LOG.info("explicitly null node {} on json1 replaced with non-null node on json2", json1Field);
-			} else if (json1.hasNonNull(json1Field) && json2.get(json1Field).isNull()) {
-				((ObjectNode) json1).replace(json1Field, json2.get(json1Field));
-				LOG.info("non-null node {} on json1 replaced with explicitly null node on json2", json1Field);
-			} else if (json1.isObject()) {
-				LOG.info("Calling merge on Object {}", json1Field);
-				merge(json1Node, json2.get(json1Field));
-			} else if (json1 instanceof ObjectNode) {
-				LOG.info("json1 is an instanceof ObjectNode");				;
-				if (json2.get(json1Field) != null) {
-					((ObjectNode) json1).replace(json1Field, json2.get(json1Field));
-					LOG.info("json1 replaced {} with json2's field", json1Field);
-				}
-			} else if (json1.isArray()) {
-				ArrayNode json1ArrayNode = (ArrayNode) json1.get(json1Field);
-				ArrayNode json2ArrayNode = (ArrayNode) json2.get(json1Field);
+			}
+			
+			LOG.info("need to compare \"{}\" which is a {}", nodeName, json1Node.getNodeType());
+			
+			if (json1Node.isObject()) {
+				LOG.info("Calling merge on object {}", nodeName);
+				merge(json1Node, json2.get(nodeName));
+			} else if (json1Node instanceof ObjectNode) {
+				throw new JsonMergeException("{} is instance of ObjectNode and wasn't isObject()--what gives?!");
+			} else if (json1Node.isArray()) {
+				ArrayNode json1Array = (ArrayNode) json1Node;
+				ArrayNode json2Array = (ArrayNode) json2Node;
 				LOG.info("ArrayNode {} json1 has {} elements and json2 has {} elements",
-					 json1Field, json1ArrayNode.size(), json2ArrayNode.size());
+					 nodeName, json1Array.size(), json2Array.size());
 				int indexNo = 0;
-				Iterator<JsonNode> json2Iter = json2ArrayNode.iterator();
+				Iterator<JsonNode> json2Iter = json2Array.iterator();
 				while (json2Iter.hasNext()) {
 					JsonNode json2Element = json2Iter.next();
-					if (!json1Node.has(indexNo)) {
-						LOG.info("Need to merge ArrayNode {} element {}", json1Field, indexNo);
+					if (json1Array.has(indexNo)) {
+						LOG.info("Need to merge ArrayNode {} element {}", nodeName, indexNo);
 						merge(json1Node.get(indexNo), json2Element);
 					} else {
-						LOG.info("ArrayNode {} element {} not found on json1, adding", json1Field, indexNo);
-						json1ArrayNode.add(json2Element);
+						LOG.info("ArrayNode {} element {} not found on json1, adding", nodeName, indexNo);
+						json1Array.add(json2Element);
 					}
 					indexNo++;
 				}
-				while (json1ArrayNode.size() > json2ArrayNode.size()) {
-					int indexToRemove = json1ArrayNode.size() - 1;
-					json1ArrayNode.remove(indexToRemove);
+				while (json1Array.size() > json2Array.size()) {
+					int indexToRemove = json1Array.size() - 1;
+					json1Array.remove(indexToRemove);
 					LOG.info("ArrayNode {} index {} on json1 removed since greater than size of json2 ({})",
-						 json1Field, indexToRemove, json2ArrayNode.size());
+						 nodeName, indexToRemove, json2Array.size());
 				}				
-			} else {				
-				throw new JsonMergeException(String.format("Cannot merge %s unknown type of %s", 
-					 json1Field, json1Node.getNodeType()));
+			} else {
+				LOG.info("{} ({}) has fallen through known merge types", nodeName, json1Node.getNodeType());
+				((ObjectNode) json1).replace(nodeName, json2Node);
+				LOG.info("json1 node {} replaced with json2's node", nodeName);
 			}
 		}
 		return json1;
