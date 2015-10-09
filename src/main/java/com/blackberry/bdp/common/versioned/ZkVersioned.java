@@ -307,8 +307,7 @@ public abstract class ZkVersioned {
 			String nodeName = json1Fields.next();
 			JsonNode json1Node = json1.get(nodeName);
 			
-			// Check if json2 has node and run explicit null checks
-			
+			// Check if json2 has the node and run explicit null checks			
 			if (!json2.has(nodeName)) {
 				LOG.info("Not comparing {} since it doesn't exist on json2", nodeName);
 				continue;
@@ -321,8 +320,6 @@ public abstract class ZkVersioned {
 				LOG.info("non-null {} on json1 replaced with explicitly null on json2", nodeName);
 				continue;
 			}
-			
-			// Both nodes have non-null values
 			
 			JsonNode json2Node = json2.get(nodeName);
 			
