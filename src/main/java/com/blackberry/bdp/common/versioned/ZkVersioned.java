@@ -45,10 +45,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 
 @JsonIgnoreProperties({"curator", "zkPath", "mode", "retries", "backoff", "backoffExponent"})
-public abstract class ZkVersioned {
+public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZkVersioned.class);
 	protected static ObjectMapper mapper;
@@ -64,6 +63,8 @@ public abstract class ZkVersioned {
 	public ZkVersioned() {
 		mapper = getNewMapper();
 	}
+	
+	protected abstract T getThis();
 
 	public ZkVersioned(CuratorFramework curator, String zkPath) {
 		this();
@@ -127,7 +128,7 @@ public abstract class ZkVersioned {
 		if (newZkStat == null) {
 			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPath);
 		}
-		ZkVersioned newObj = mapper.readValue(curator.getData().forPath(zkPath), this.getClass());
+		ZkVersioned newObj = mapper.readValue(curator.getData().forPath(zkPath), getClass());
 		newObj.setVersion(newZkStat.getVersion());
 		reload(newObj);
 		this.version = newZkStat.getVersion();
@@ -159,7 +160,7 @@ public abstract class ZkVersioned {
 	}
 
 	public String toJSON() throws JsonProcessingException {
-		return mapper.writeValueAsString(this);
+		return mapper.writeValueAsString(getThis());
 	}
 
 	public String toJSON(String role)
@@ -435,53 +436,6 @@ public abstract class ZkVersioned {
 	}
 
 	/**
-	 This is gross and what happens when you try to bend something to your will that
-	 should never have been bent that way at all.  Leaving it in as a reminder of hell
-	 @param <K>
-	 @param <T>
-	 @param type
-	 @param keyMethod
-	 @param keyMethodName
-	 @param curator
-	 @param zkPathRoot
-	 @return
-	 @throws Exception 
-	 */
-	public static <K, T extends ZkVersioned> HashedList<K, T> getAllHashedList(
-		 Class<T> type,
-		 Class<K> keyMethod,
-		 String keyMethodName,
-		 CuratorFramework curator,
-		 String zkPathRoot) throws Exception {
-
-		Method method = type.getDeclaredMethod(keyMethodName, keyMethod);
-
-		HashedList<K, T> hashedList = new HashedList<>();
-
-		mapper = getNewMapper();
-		Stat stat = curator.checkExists().forPath(zkPathRoot);
-		if (stat == null) {
-			throw new MissingConfigurationException("Configuration doesn't exist in ZK at " + zkPathRoot);
-		}
-
-		for (String objectId : Util.childrenInZkPath(curator, zkPathRoot)) {
-			String objPath = String.format("%s/%s", zkPathRoot, objectId);
-			Stat objStat = curator.checkExists().forPath(objPath);
-			byte[] jsonBytes = curator.getData().forPath(objPath);
-			if (jsonBytes.length != 0) {
-				T obj = mapper.readValue(jsonBytes, type);
-				obj.setVersion(objStat.getVersion());
-				obj.setCurator(curator);
-				obj.setZkPath(objPath);
-				hashedList.add((K) method.invoke(obj), obj);
-			} else {
-				LOG.error("The byte array in {} was empty", objPath);
-			}
-		}
-		return hashedList;
-	}
-
-	/**
 	 * @return the version
 	 */
 	public Integer getVersion() {
@@ -490,23 +444,29 @@ public abstract class ZkVersioned {
 
 	/**
 	 * @param version the version to set
+	 * @return 
 	 */
-	public void setVersion(Integer version) {
+	public T setVersion(Integer version) {
 		this.version = version;
+		return getThis();
 	}
 
 	/**
 	 * @param curator the curator to set
+	 * @return 
 	 */
-	public void setCurator(CuratorFramework curator) {
+	public T setCurator(CuratorFramework curator) {
 		this.curator = curator;
+		return getThis();
 	}
 
 	/**
 	 * @param zkPath the zkPath to set
+	 * @return 
 	 */
-	public void setZkPath(String zkPath) {
+	public T setZkPath(String zkPath) {
 		this.zkPath = zkPath;
+		return getThis();
 	}
 
 	/**
@@ -525,9 +485,11 @@ public abstract class ZkVersioned {
 
 	/**
 	 * @param mode the mode to set
+	 * @return 
 	 */
-	public void setMode(CreateMode mode) {
+	public T setMode(CreateMode mode) {
 		this.mode = mode;
+		return getThis();
 	}
 
 	/**
@@ -539,9 +501,11 @@ public abstract class ZkVersioned {
 
 	/**
 	 * @param backoff the backoff to set
+	 * @return 
 	 */
-	public void setBackoff(long backoff) {
+	public T setBackoff(long backoff) {
 		this.backoff = backoff;
+		return getThis();
 	}
 
 	/**
@@ -553,9 +517,11 @@ public abstract class ZkVersioned {
 
 	/**
 	 * @param retries the retries to set
+	 * @return 
 	 */
-	public void setRetries(long retries) {
+	public T setRetries(long retries) {
 		this.retries = retries;
+		return getThis();
 	}
 
 	/**
@@ -567,9 +533,11 @@ public abstract class ZkVersioned {
 
 	/**
 	 * @param backoffExponent the backoffExponent to set
+	 * @return 
 	 */
-	public void setBackoffExponent(long backoffExponent) {
+	public T setBackoffExponent(long backoffExponent) {
 		this.backoffExponent = backoffExponent;
+		return getThis();
 	}
 
 }

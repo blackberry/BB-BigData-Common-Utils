@@ -17,11 +17,12 @@ package com.blackberry.bdp.common.versioned;
 
 //import com.fasterxml.jackson.annotation.JsonInclude;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import org.apache.curator.framework.CuratorFramework;
 
-public class TestParentObject extends ZkVersioned {
+public class TestParentObject extends ZkVersioned<TestParentObject> {
 
 	private long longObject;
 	private List<TestObject> testObjects;
@@ -30,6 +31,11 @@ public class TestParentObject extends ZkVersioned {
 	
 	public TestParentObject(CuratorFramework curator, String zkPath) {
 		super(curator, zkPath);
+	}
+	
+	@Override @JsonIgnore
+	public TestParentObject getThis() {
+		return this;
 	}
 
 	/**
