@@ -9,8 +9,8 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.blackberry.bdp.common</groupId>
 	<artifactId>bdp-common</artifactId>
-	<version>0.5.1-SNAPSHOT</version>	
-	<name>common-utils-0.5.1-SNAPSHOT</name>
+	<version>0.5.2-SNAPSHOT</version>	
+	<name>common-utils-0.5.2-SNAPSHOT</name>
 	
 	<dependencies>
 		

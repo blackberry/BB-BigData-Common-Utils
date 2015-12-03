@@ -1,5 +1,9 @@
 # Common Utils Change Log
 
+## 0.5.2
+
+Adding @JsonIgnore to various setters in ZkVersioned
+
 ## 0.0.13
 
 * ZkVersioned: Fixed MixIns role bug where merging JSON structures with fewer array elements caused an NPE

@@ -446,6 +446,7 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 	 * @param version the version to set
 	 * @return 
 	 */
+	@JsonIgnore
 	public T setVersion(Integer version) {
 		this.version = version;
 		return getThis();
@@ -455,6 +456,7 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 	 * @param curator the curator to set
 	 * @return 
 	 */
+	@JsonIgnore
 	public T setCurator(CuratorFramework curator) {
 		this.curator = curator;
 		return getThis();
@@ -464,6 +466,7 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 	 * @param zkPath the zkPath to set
 	 * @return 
 	 */
+	@JsonIgnore
 	public T setZkPath(String zkPath) {
 		this.zkPath = zkPath;
 		return getThis();
@@ -487,6 +490,7 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 	 * @param mode the mode to set
 	 * @return 
 	 */
+	@JsonIgnore	
 	public T setMode(CreateMode mode) {
 		this.mode = mode;
 		return getThis();
@@ -503,6 +507,7 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 	 * @param backoff the backoff to set
 	 * @return 
 	 */
+	@JsonIgnore
 	public T setBackoff(long backoff) {
 		this.backoff = backoff;
 		return getThis();
@@ -519,6 +524,7 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 	 * @param retries the retries to set
 	 * @return 
 	 */
+	@JsonIgnore
 	public T setRetries(long retries) {
 		this.retries = retries;
 		return getThis();
@@ -535,6 +541,7 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 	 * @param backoffExponent the backoffExponent to set
 	 * @return 
 	 */
+	@JsonIgnore
 	public T setBackoffExponent(long backoffExponent) {
 		this.backoffExponent = backoffExponent;
 		return getThis();
