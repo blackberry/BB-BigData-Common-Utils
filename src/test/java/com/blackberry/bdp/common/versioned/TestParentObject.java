@@ -33,11 +33,6 @@ public class TestParentObject extends ZkVersioned<TestParentObject> {
 		super(curator, zkPath);
 	}
 	
-	@Override @JsonIgnore
-	public TestParentObject getThis() {
-		return this;
-	}
-
 	/**
 	 * @return the longObject
 	 */

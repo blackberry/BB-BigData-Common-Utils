@@ -37,11 +37,6 @@ public class TestObject extends ZkVersioned<TestObject> {
 		super(curator, zkPath);
 	}
 	
-	@Override @JsonIgnore
-	public TestObject getThis() {
-		return this;
-	}
-
 	/**
 	 * @return the longObject
 	 */

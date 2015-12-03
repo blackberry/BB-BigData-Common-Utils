@@ -64,8 +64,6 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 		mapper = getNewMapper();
 	}
 	
-	protected abstract T getThis();
-
 	public ZkVersioned(CuratorFramework curator, String zkPath) {
 		this();
 		this.curator = curator;
@@ -160,7 +158,7 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 	}
 
 	public String toJSON() throws JsonProcessingException {
-		return mapper.writeValueAsString(getThis());
+		return mapper.writeValueAsString(this);
 	}
 
 	public String toJSON(String role)
