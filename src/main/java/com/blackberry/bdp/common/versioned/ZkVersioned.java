@@ -442,34 +442,16 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 		return version;
 	}
 
-	/**
-	 * @param version the version to set
-	 * @return 
-	 */
-	@JsonIgnore
-	public T setVersion(Integer version) {
+	public void setVersion(Integer version) {
 		this.version = version;
-		return getThis();
 	}
 
-	/**
-	 * @param curator the curator to set
-	 * @return 
-	 */
-	@JsonIgnore
-	public T setCurator(CuratorFramework curator) {
+	public void setCurator(CuratorFramework curator) {
 		this.curator = curator;
-		return getThis();
 	}
 
-	/**
-	 * @param zkPath the zkPath to set
-	 * @return 
-	 */
-	@JsonIgnore
-	public T setZkPath(String zkPath) {
+	public void setZkPath(String zkPath) {
 		this.zkPath = zkPath;
-		return getThis();
 	}
 
 	/**
@@ -486,14 +468,8 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 		return mode;
 	}
 
-	/**
-	 * @param mode the mode to set
-	 * @return 
-	 */
-	@JsonIgnore	
-	public T setMode(CreateMode mode) {
+	public void setMode(CreateMode mode) {
 		this.mode = mode;
-		return getThis();
 	}
 
 	/**
@@ -503,14 +479,8 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 		return backoff;
 	}
 
-	/**
-	 * @param backoff the backoff to set
-	 * @return 
-	 */
-	@JsonIgnore
-	public T setBackoff(long backoff) {
+	public void setBackoff(long backoff) {
 		this.backoff = backoff;
-		return getThis();
 	}
 
 	/**
@@ -520,14 +490,8 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 		return retries;
 	}
 
-	/**
-	 * @param retries the retries to set
-	 * @return 
-	 */
-	@JsonIgnore
-	public T setRetries(long retries) {
+	public void setRetries(long retries) {
 		this.retries = retries;
-		return getThis();
 	}
 
 	/**
@@ -537,14 +501,8 @@ public abstract class ZkVersioned <T extends ZkVersioned<T>>{
 		return backoffExponent;
 	}
 
-	/**
-	 * @param backoffExponent the backoffExponent to set
-	 * @return 
-	 */
-	@JsonIgnore
-	public T setBackoffExponent(long backoffExponent) {
+	public void setBackoffExponent(long backoffExponent) {
 		this.backoffExponent = backoffExponent;
-		return getThis();
 	}
 
 }
