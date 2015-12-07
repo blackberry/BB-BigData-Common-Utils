@@ -1,33 +1,33 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	
+
 	<scm>
 		<connection>scm:git:git@gitlab.rim.net:ipgbd-software/bb-common-utils.git</connection>
 		<developerConnection>scm:git:git@gitlab.rim.net:ipgbd-software/bb-common-utils.git</developerConnection>
 		<url>https://gitlab.rim.net/ipgbd-software/bb-common-utils</url>
 	</scm>
-		
+
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.blackberry.bdp.common</groupId>
 	<artifactId>bdp-common</artifactId>
-	<version>0.5.2-SNAPSHOT</version>	
-	<name>common-utils-0.5.2-SNAPSHOT</name>
-	
+	<version>0.5.2</version>
+	<name>common-utils-0.5.2</name>
+
 	<dependencies>
-		
+
 		<!-- Guava -->
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>18.0</version>
 		</dependency>
-		
+
 		<!-- Curator Framework -->
 		<dependency>
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-recipes</artifactId>
 			<version>2.8.0</version>
 		</dependency>
-		
+
 		<!-- Metrics -->
 		<dependency>
 			<groupId>io.dropwizard.metrics</groupId>
@@ -39,46 +39,46 @@
 			<artifactId>metrics-core</artifactId>
 			<version>3.1.1</version>
 		</dependency>
-		
+
 		<!-- slf4j -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>1.7.10</version>
 		</dependency>
-		
+
 		<!-- Binding for Log4J2 -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
 			<version>2.2</version>
 		</dependency>
-		
-		<!-- Log4j2 API and Core implementation required for binding -->		
+
+		<!-- Log4j2 API and Core implementation required for binding -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>		
+			<artifactId>log4j-api</artifactId>
 			<version>2.2</version>
 		</dependency>
-		
-		<!-- 
-			If existing components use Log4j 1.x and you want to have this 
-			logging routed to Log4j 2, then remove any log4j 1.x 
-			dependencies and add the following. 
-				
+
+		<!--
+			If existing components use Log4j 1.x and you want to have this
+			logging routed to Log4j 2, then remove any log4j 1.x
+			dependencies and add the following.
+
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-1.2-api</artifactId>
 			<version>2.2</version>
 		</dependency>
 		-->
-		
+
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
 			<version>2.2</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
@@ -91,20 +91,20 @@
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
 			<scope>test</scope>
-		</dependency>	 
+		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 			<version>2.4</version>
 			<scope>test</scope>
 		</dependency>
-		
-	</dependencies> 
-	
+
+	</dependencies>
+
 	<build>
 		<plugins>
 
-			<!-- Sign artifacts via GPG 
+			<!-- Sign artifacts via GPG
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-gpg-plugin</artifactId>
@@ -119,7 +119,7 @@
 					</execution>
 				</executions>
 			</plugin>			-->
-						
+
 			<!-- Generate a build number based off the commit hash -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -135,10 +135,10 @@
 				</executions>
 				<configuration>
 					<doCheck>false</doCheck>
-					<doUpdate>false</doUpdate>		
-				</configuration>					
+					<doUpdate>false</doUpdate>
+				</configuration>
 			</plugin>
-			
+
 			<!-- Insert the build branch and commit hash into the manifest -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -156,7 +156,7 @@
 					</archive>
 				</configuration>
 			</plugin>
-			
+
 		</plugins>
 	</build>
 	<properties>
